@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using FControl.Models;
 using FControl.Pages;
 using FControl.Services;
 using Microsoft.UI.Windowing;
@@ -17,6 +18,8 @@ public sealed partial class MainWindow : Window
     private readonly nint _hwnd;
     private readonly TrayIconService _trayIcon;
     private readonly GlobalHotKeyService _hotKeys;
+    private readonly HotKeyActionService _actions;
+    private InfoBar? _actionStatusInfoBar;
     private bool _isExitRequested;
 
     public MainWindow()
@@ -33,7 +36,11 @@ public sealed partial class MainWindow : Window
         AppWindow.Closing += AppWindow_Closing;
         _trayIcon = new TrayIconService(_hwnd, DispatcherQueue, ShowSettingsWindow, ExitFromTray);
         _hotKeys = new GlobalHotKeyService(_hwnd, AppServices.Configuration);
+        _actions = new HotKeyActionService(AppServices.Configuration);
+        _hotKeys.HotKeyTriggered += HotKeys_HotKeyTriggered;
+        _actions.ActionExecuted += Actions_ActionExecuted;
         AppServices.HotKeys = _hotKeys;
+        AppServices.Actions = _actions;
         AppServices.Configuration.ConfigurationChanged += Configuration_ConfigurationChanged;
 
         NavigateTo(typeof(KeyMappingPage));
@@ -42,6 +49,16 @@ public sealed partial class MainWindow : Window
     private void Configuration_ConfigurationChanged(object? sender, EventArgs e)
     {
         _hotKeys.Refresh();
+    }
+
+    private void HotKeys_HotKeyTriggered(object? sender, HotKeyTriggeredEventArgs e)
+    {
+        _actions.Execute(e.Mapping);
+    }
+
+    private void Actions_ActionExecuted(object? sender, ActionExecutedEventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(() => ShowActionStatus(e));
     }
 
     private void TitleBar_PaneToggleRequested(TitleBar sender, object args)
@@ -88,12 +105,37 @@ public sealed partial class MainWindow : Window
         }
     }
 
+    private void ShowActionStatus(ActionExecutedEventArgs e)
+    {
+        _actionStatusInfoBar ??= new InfoBar
+        {
+            IsClosable = true,
+            Margin = new Thickness(16),
+            VerticalAlignment = VerticalAlignment.Top,
+            HorizontalAlignment = HorizontalAlignment.Stretch
+        };
+
+        if (_actionStatusInfoBar.Parent is null)
+        {
+            Grid.SetRowSpan(_actionStatusInfoBar, 2);
+            RootGrid.Children.Add(_actionStatusInfoBar);
+        }
+
+        _actionStatusInfoBar.Severity = e.Result.Succeeded ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
+        _actionStatusInfoBar.Title = $"{e.Mapping.Key} · {HotKeyActionMetadata.GetDisplayName(e.Mapping.Action)}";
+        _actionStatusInfoBar.Message = e.Result.Message;
+        _actionStatusInfoBar.IsOpen = true;
+    }
+
     private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
     {
         if (_isExitRequested)
         {
             AppServices.Configuration.ConfigurationChanged -= Configuration_ConfigurationChanged;
+            _hotKeys.HotKeyTriggered -= HotKeys_HotKeyTriggered;
+            _actions.ActionExecuted -= Actions_ActionExecuted;
             AppServices.HotKeys = null;
+            AppServices.Actions = null;
             _hotKeys.Dispose();
             _trayIcon.Dispose();
             return;

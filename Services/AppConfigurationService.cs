@@ -35,6 +35,14 @@ public sealed class AppConfigurationService
         Save();
     }
 
+    public void SetControlSteps(int brightnessStepPercent, int volumeStepPercent)
+    {
+        Current.BrightnessStepPercent = brightnessStepPercent;
+        Current.VolumeStepPercent = volumeStepPercent;
+        Current = Normalize(Current);
+        Save();
+    }
+
     public void ResetToDefaults()
     {
         Current = AppConfigurationDefaults.CreateDefault();
@@ -77,6 +85,12 @@ public sealed class AppConfigurationService
         }
 
         normalized.Version = config.Version <= 0 ? 1 : config.Version;
+        normalized.BrightnessStepPercent = config.BrightnessStepPercent <= 0
+            ? normalized.BrightnessStepPercent
+            : Math.Clamp(config.BrightnessStepPercent, 1, 25);
+        normalized.VolumeStepPercent = config.VolumeStepPercent <= 0
+            ? normalized.VolumeStepPercent
+            : Math.Clamp(config.VolumeStepPercent, 1, 25);
 
         foreach (var defaultMapping in normalized.KeyMappings)
         {

@@ -4,6 +4,8 @@ public sealed class AppConfiguration
 {
     public int Version { get; set; } = 1;
     public List<KeyMappingConfig> KeyMappings { get; set; } = AppConfigurationDefaults.CreateDefaultKeyMappings();
+    public int BrightnessStepPercent { get; set; } = 5;
+    public int VolumeStepPercent { get; set; } = 2;
 }
 
 public sealed class KeyMappingConfig
@@ -33,7 +35,9 @@ public static class AppConfigurationDefaults
         return new AppConfiguration
         {
             Version = 1,
-            KeyMappings = CreateDefaultKeyMappings()
+            KeyMappings = CreateDefaultKeyMappings(),
+            BrightnessStepPercent = 5,
+            VolumeStepPercent = 2
         };
     }
 

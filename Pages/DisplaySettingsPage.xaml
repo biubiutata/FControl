@@ -13,7 +13,7 @@
                 <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="显示设置" />
                 <TextBlock
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="配置提示浮层外观与常用调节步进。M1 仅提供基础布局，实际生效逻辑将在后续里程碑完成。" />
+                    Text="配置提示浮层外观与常用调节步进。M3 已接入亮度/音量调节步进，浮层外观设置将在 M4 完成。" />
             </StackPanel>
 
             <Border
@@ -51,20 +51,24 @@
                             <ColumnDefinition Width="*" />
                         </Grid.ColumnDefinitions>
                         <NumberBox
+                            x:Name="BrightnessStepNumberBox"
                             Header="亮度调节步进（%）"
                             Maximum="25"
                             Minimum="1"
                             SmallChange="1"
                             SpinButtonPlacementMode="Inline"
-                            Value="5" />
+                            Value="5"
+                            ValueChanged="ControlStepNumberBox_ValueChanged" />
                         <NumberBox
+                            x:Name="VolumeStepNumberBox"
                             Grid.Column="1"
                             Header="音量调节步进（%）"
                             Maximum="25"
                             Minimum="1"
                             SmallChange="1"
                             SpinButtonPlacementMode="Inline"
-                            Value="2" />
+                            Value="2"
+                            ValueChanged="ControlStepNumberBox_ValueChanged" />
                     </Grid>
                 </StackPanel>
             </Border>
