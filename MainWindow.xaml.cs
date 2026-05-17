@@ -34,7 +34,7 @@ public sealed partial class MainWindow : Window
 
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         AppWindow.Closing += AppWindow_Closing;
-        _trayIcon = new TrayIconService(_hwnd, DispatcherQueue, ShowSettingsWindow, ExitFromTray);
+        _trayIcon = new TrayIconService(_hwnd, DispatcherQueue, ShowSettingsWindow, ShowAdvancedSettingsWindow, ExitFromTray);
         _hotKeys = new GlobalHotKeyService(_hwnd, AppServices.Configuration);
         _actions = new HotKeyActionService(AppServices.Configuration);
         _overlayWindow = new ActionOverlayWindow();
@@ -160,7 +160,13 @@ public sealed partial class MainWindow : Window
 
     private void HideToTray()
     {
-        ShowWindow(_hwnd, SwHide);
+        if (AppServices.Configuration.Current.KeepTrayIconEnabled)
+        {
+            ShowWindow(_hwnd, SwHide);
+            return;
+        }
+
+        ExitFromTray();
     }
 
     private void ShowSettingsWindow()
@@ -168,6 +174,15 @@ public sealed partial class MainWindow : Window
         ShowWindow(_hwnd, SwShow);
         ShowWindow(_hwnd, SwRestore);
         Activate();
+    }
+
+    private void ShowAdvancedSettingsWindow()
+    {
+        ShowSettingsWindow();
+        NavView.SelectedItem = NavView.MenuItems
+            .OfType<NavigationViewItem>()
+            .FirstOrDefault(static item => (string?)item.Tag == "advancedSettings");
+        NavigateTo(typeof(AdvancedSettingsPage));
     }
 
     private void ExitFromTray()

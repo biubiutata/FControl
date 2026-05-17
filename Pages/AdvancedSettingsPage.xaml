@@ -7,50 +7,77 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
-    <Grid Padding="24,16,24,24" RowSpacing="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
+    <ScrollViewer>
+        <StackPanel Padding="24,16,24,24" Spacing="16">
+            <StackPanel Spacing="4">
+                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="高级设置" />
+                <TextBlock
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="配置后台运行、启动行为与兼容性选项。" />
+            </StackPanel>
 
-        <StackPanel Spacing="4">
-            <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="高级设置" />
-            <TextBlock
-                Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                Text="开发调试功能会实时显示本次运行期间的热键、动作和配置日志。" />
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <ToggleSwitch
+                        x:Name="CompatibilityModeSwitch"
+                        Header="开启兼容模式"
+                        Toggled="AdvancedSwitch_Toggled" />
+                    <ToggleSwitch
+                        x:Name="StartupSwitch"
+                        Header="开机自启"
+                        Toggled="AdvancedSwitch_Toggled" />
+                    <ToggleSwitch
+                        x:Name="ColdStartSwitch"
+                        Header="冷启动"
+                        Toggled="AdvancedSwitch_Toggled" />
+                    <ToggleSwitch
+                        x:Name="KeepTrayIconSwitch"
+                        Header="保留状态栏图标（推荐保留）"
+                        Toggled="AdvancedSwitch_Toggled" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Spacing="4">
+                <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="运行日志" />
+                <TextBlock
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="开发调试功能会实时显示本次运行期间的热键、动作和配置日志。" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Click="ClearLogButton_Click" Content="清空日志" />
+                <Button Click="ExportLogButton_Click" Content="导出日志文件" />
+            </StackPanel>
+
+            <Border
+                MinHeight="320"
+                Padding="12"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <ListView x:Name="LogListView" ItemsSource="{x:Bind LogLines}">
+                    <ListView.ItemTemplate>
+                        <DataTemplate>
+                            <TextBlock
+                                FontFamily="Consolas"
+                                FontSize="12"
+                                Text="{Binding}"
+                                TextWrapping="NoWrap" />
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </Border>
+
+            <InfoBar
+                x:Name="ExportInfoBar"
+                IsOpen="False"
+                Severity="Informational" />
         </StackPanel>
-
-        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="12">
-            <Button Click="ClearLogButton_Click" Content="清空日志" />
-            <Button Click="ExportLogButton_Click" Content="导出日志文件" />
-        </StackPanel>
-
-        <Border
-            Grid.Row="2"
-            Padding="12"
-            Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
-            BorderThickness="1"
-            CornerRadius="8">
-            <ListView x:Name="LogListView" ItemsSource="{x:Bind LogLines}">
-                <ListView.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock
-                            FontFamily="Consolas"
-                            FontSize="12"
-                            Text="{Binding}"
-                            TextWrapping="NoWrap" />
-                    </DataTemplate>
-                </ListView.ItemTemplate>
-            </ListView>
-        </Border>
-
-        <InfoBar
-            x:Name="ExportInfoBar"
-            Grid.Row="3"
-            IsOpen="False"
-            Severity="Informational" />
-    </Grid>
+    </ScrollViewer>
 </Page>

@@ -53,6 +53,7 @@ public sealed class GlobalHotKeyService : IDisposable
         UnregisterAll();
 
         var failures = new List<HotKeyRegistrationFailure>();
+        var forceCompatibilityMode = _configurationService.Current.CompatibilityModeEnabled;
         foreach (var mapping in _configurationService.Current.KeyMappings)
         {
             if (mapping.Action == HotKeyAction.Disabled)
@@ -68,6 +69,12 @@ public sealed class GlobalHotKeyService : IDisposable
 
             var hotKeyId = FirstHotKeyId + functionKeyNumber.Value;
             var virtualKey = VirtualKeyF1 + functionKeyNumber.Value - 1;
+            if (forceCompatibilityMode)
+            {
+                _hookMappings[virtualKey] = mapping.Clone();
+                continue;
+            }
+
             if (RegisterHotKey(_hwnd, hotKeyId, NoModifiers, (uint)virtualKey))
             {
                 _registeredMappings[hotKeyId] = mapping.Clone();

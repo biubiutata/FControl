@@ -16,6 +16,8 @@ public sealed partial class ActionOverlayWindow : Window
     private const int SwShow = 5;
     private const int GwlExStyle = -20;
     private const int WsExToolWindow = 0x00000080;
+    private const int WsExLayered = 0x00080000;
+    private const int LwaAlpha = 0x00000002;
 
     private readonly nint _hwnd;
     private readonly DispatcherTimer _timer = new();
@@ -44,7 +46,7 @@ public sealed partial class ActionOverlayWindow : Window
         }
 
         var extendedStyle = GetWindowLong(_hwnd, GwlExStyle);
-        _ = SetWindowLong(_hwnd, GwlExStyle, extendedStyle | WsExToolWindow);
+        _ = SetWindowLong(_hwnd, GwlExStyle, extendedStyle | WsExToolWindow | WsExLayered);
         _ = ShowWindow(_hwnd, SwHide);
 
         _timer.Tick += Timer_Tick;
@@ -101,7 +103,9 @@ public sealed partial class ActionOverlayWindow : Window
         _timer.Stop();
 
         OverlayCard.Opacity = 0;
-        OverlayCard.Background = new SolidColorBrush(Color.FromArgb(GetConfiguredAlpha(), 250, 250, 250));
+        var alpha = GetConfiguredAlpha();
+        _ = SetLayeredWindowAttributes(_hwnd, 0, alpha, LwaAlpha);
+        OverlayCard.Background = new SolidColorBrush(Color.FromArgb(255, 250, 250, 250));
         _ = ShowWindow(_hwnd, SwShow);
 
         StartAnimation(0, 1, TimeSpan.FromMilliseconds(200), null);
@@ -229,4 +233,7 @@ public sealed partial class ActionOverlayWindow : Window
 
     [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
     private static extern int SetWindowLong(nint hWnd, int nIndex, int dwNewLong);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetLayeredWindowAttributes(nint hwnd, uint crKey, byte bAlpha, uint dwFlags);
 }

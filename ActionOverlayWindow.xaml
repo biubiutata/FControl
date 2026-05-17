@@ -9,8 +9,7 @@
             x:Name="OverlayCard"
             Padding="18"
             Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
-            BorderBrush="{ThemeResource AccentFillColorDefaultBrush}"
-            BorderThickness="1"
+            BorderThickness="0"
             CornerRadius="14"
             Opacity="0">
             <Border.Shadow>

@@ -8,6 +8,10 @@ public sealed class AppConfiguration
     public int OverlayOpacityPercent { get; set; } = 80;
     public int BrightnessStepPercent { get; set; } = 5;
     public int VolumeStepPercent { get; set; } = 2;
+    public bool CompatibilityModeEnabled { get; set; }
+    public bool StartupEnabled { get; set; }
+    public bool ColdStartEnabled { get; set; }
+    public bool KeepTrayIconEnabled { get; set; } = true;
 }
 
 public sealed class KeyMappingConfig
@@ -41,7 +45,11 @@ public static class AppConfigurationDefaults
             OverlayDurationSeconds = 3,
             OverlayOpacityPercent = 80,
             BrightnessStepPercent = 5,
-            VolumeStepPercent = 2
+            VolumeStepPercent = 2,
+            CompatibilityModeEnabled = false,
+            StartupEnabled = false,
+            ColdStartEnabled = false,
+            KeepTrayIconEnabled = true
         };
     }
 

@@ -51,6 +51,20 @@ public sealed class AppConfigurationService
         Save();
     }
 
+    public void SetAdvancedSettings(
+        bool compatibilityModeEnabled,
+        bool startupEnabled,
+        bool coldStartEnabled,
+        bool keepTrayIconEnabled)
+    {
+        Current.CompatibilityModeEnabled = compatibilityModeEnabled;
+        Current.StartupEnabled = startupEnabled;
+        Current.ColdStartEnabled = coldStartEnabled;
+        Current.KeepTrayIconEnabled = keepTrayIconEnabled;
+        Current = Normalize(Current);
+        Save();
+    }
+
     public void ResetToDefaults()
     {
         Current = AppConfigurationDefaults.CreateDefault();
@@ -106,6 +120,10 @@ public sealed class AppConfigurationService
         normalized.VolumeStepPercent = config.VolumeStepPercent <= 0
             ? normalized.VolumeStepPercent
             : Math.Clamp(config.VolumeStepPercent, 1, 25);
+        normalized.CompatibilityModeEnabled = config.CompatibilityModeEnabled;
+        normalized.StartupEnabled = config.StartupEnabled;
+        normalized.ColdStartEnabled = config.ColdStartEnabled;
+        normalized.KeepTrayIconEnabled = config.KeepTrayIconEnabled;
 
         foreach (var defaultMapping in normalized.KeyMappings)
         {

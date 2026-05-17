@@ -14,8 +14,12 @@ internal sealed class TrayIconService : IDisposable
     private const uint NotifyIconVersion4 = 4;
     private const uint WmApp = 0x8000;
     private const uint WmTrayIcon = WmApp + 1;
+    private const int WmContextMenu = 0x007B;
+    private const int WmLButtonUp = 0x0202;
     private const int WmLButtonDblClk = 0x0203;
     private const int WmRButtonUp = 0x0205;
+    private const int NinSelect = 0x0400;
+    private const int NinKeySelect = 0x0401;
     private const int ImageIcon = 1;
     private const uint LrLoadFromFile = 0x00000010;
     private const uint LrDefaultSize = 0x00000040;
@@ -23,23 +27,30 @@ internal sealed class TrayIconService : IDisposable
     private const uint MfSeparator = 0x00000800;
     private const uint TpmReturNcmd = 0x0100;
     private const uint TpmRightButton = 0x0002;
-    private const uint OpenSettingsCommand = 1001;
+    private const uint AdvancedSettingsCommand = 1001;
     private const uint ExitCommand = 1002;
     private const nuint SubclassId = 1;
 
     private readonly nint _hwnd;
     private readonly DispatcherQueue _dispatcherQueue;
-    private readonly Action _openSettings;
+    private readonly Action _openWindow;
+    private readonly Action _openAdvancedSettings;
     private readonly Action _exit;
     private readonly SubclassProc _subclassProc;
     private nint _iconHandle;
     private bool _disposed;
 
-    public TrayIconService(nint hwnd, DispatcherQueue dispatcherQueue, Action openSettings, Action exit)
+    public TrayIconService(
+        nint hwnd,
+        DispatcherQueue dispatcherQueue,
+        Action openWindow,
+        Action openAdvancedSettings,
+        Action exit)
     {
         _hwnd = hwnd;
         _dispatcherQueue = dispatcherQueue;
-        _openSettings = openSettings;
+        _openWindow = openWindow;
+        _openAdvancedSettings = openAdvancedSettings;
         _exit = exit;
         _subclassProc = WindowSubclassProc;
 
@@ -110,13 +121,13 @@ internal sealed class TrayIconService : IDisposable
         if (msg == WmTrayIcon)
         {
             var mouseMessage = unchecked((int)lParam);
-            if (mouseMessage == WmLButtonDblClk)
+            if (mouseMessage is WmLButtonUp or WmLButtonDblClk or NinSelect or NinKeySelect)
             {
-                _dispatcherQueue.TryEnqueue(() => _openSettings());
+                _dispatcherQueue.TryEnqueue(() => _openWindow());
                 return 0;
             }
 
-            if (mouseMessage == WmRButtonUp)
+            if (mouseMessage is WmRButtonUp or WmContextMenu)
             {
                 ShowContextMenu();
                 return 0;
@@ -136,7 +147,7 @@ internal sealed class TrayIconService : IDisposable
 
         try
         {
-            _ = AppendMenu(menu, MfString, OpenSettingsCommand, "打开设置");
+            _ = AppendMenu(menu, MfString, AdvancedSettingsCommand, "高级设置");
             _ = AppendMenu(menu, MfSeparator, 0, null);
             _ = AppendMenu(menu, MfString, ExitCommand, "退出");
 
@@ -149,8 +160,8 @@ internal sealed class TrayIconService : IDisposable
             var command = TrackPopupMenu(menu, TpmReturNcmd | TpmRightButton, point.X, point.Y, 0, _hwnd, 0);
             switch (command)
             {
-                case OpenSettingsCommand:
-                    _dispatcherQueue.TryEnqueue(() => _openSettings());
+                case AdvancedSettingsCommand:
+                    _dispatcherQueue.TryEnqueue(() => _openAdvancedSettings());
                     break;
                 case ExitCommand:
                     _dispatcherQueue.TryEnqueue(() => _exit());

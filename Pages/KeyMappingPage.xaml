@@ -26,15 +26,24 @@
                     HorizontalAlignment="Stretch"
                     ItemsSource="{x:Bind Actions}"
                     SelectedItem="{x:Bind Action, Mode=TwoWay}" />
-                <NumberBox
+                <StackPanel
                     Grid.Column="2"
-                    Header="秒数"
-                    Maximum="60"
-                    Minimum="1"
-                    SmallChange="1"
-                    SpinButtonPlacementMode="Inline"
-                    Value="{x:Bind Seconds, Mode=TwoWay}"
-                    Visibility="{x:Bind SecondsVisibility, Mode=OneWay}" />
+                    VerticalAlignment="Center"
+                    Orientation="Horizontal"
+                    Spacing="10"
+                    Visibility="{x:Bind SecondsVisibility, Mode=OneWay}">
+                    <TextBlock
+                        VerticalAlignment="Center"
+                        Style="{StaticResource BodyStrongTextBlockStyle}"
+                        Text="秒数" />
+                    <NumberBox
+                        Width="110"
+                        Maximum="60"
+                        Minimum="1"
+                        SmallChange="1"
+                        SpinButtonPlacementMode="Inline"
+                        Value="{x:Bind Seconds, Mode=TwoWay}" />
+                </StackPanel>
             </Grid>
         </DataTemplate>
     </Page.Resources>

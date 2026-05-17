@@ -7,7 +7,9 @@ namespace FControl.Pages;
 
 public sealed partial class AdvancedSettingsPage : Page
 {
+    private readonly AppConfigurationService _configurationService = AppServices.Configuration;
     private readonly AppLogService _logService = AppServices.Log;
+    private bool _isLoading = true;
 
     public ObservableCollection<string> LogLines { get; } = [];
 
@@ -20,8 +22,19 @@ public sealed partial class AdvancedSettingsPage : Page
             LogLines.Add(line);
         }
 
+        LoadSettings();
         Loaded += AdvancedSettingsPage_Loaded;
         Unloaded += AdvancedSettingsPage_Unloaded;
+    }
+
+    private void LoadSettings()
+    {
+        _isLoading = true;
+        CompatibilityModeSwitch.IsOn = _configurationService.Current.CompatibilityModeEnabled;
+        StartupSwitch.IsOn = _configurationService.Current.StartupEnabled;
+        ColdStartSwitch.IsOn = _configurationService.Current.ColdStartEnabled;
+        KeepTrayIconSwitch.IsOn = _configurationService.Current.KeepTrayIconEnabled;
+        _isLoading = false;
     }
 
     private void AdvancedSettingsPage_Loaded(object sender, RoutedEventArgs e)
@@ -58,6 +71,22 @@ public sealed partial class AdvancedSettingsPage : Page
 
         _logService.Export(path);
         ShowInfo($"日志已导出：{path}");
+    }
+
+    private void AdvancedSwitch_Toggled(object sender, RoutedEventArgs e)
+    {
+        if (_isLoading)
+        {
+            return;
+        }
+
+        _configurationService.SetAdvancedSettings(
+            CompatibilityModeSwitch.IsOn,
+            StartupSwitch.IsOn,
+            ColdStartSwitch.IsOn,
+            KeepTrayIconSwitch.IsOn);
+
+        StartupRegistrationService.SetStartupEnabled(StartupSwitch.IsOn);
     }
 
     private void ShowInfo(string message)
