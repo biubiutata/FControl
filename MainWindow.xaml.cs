@@ -16,6 +16,7 @@ public sealed partial class MainWindow : Window
 
     private readonly nint _hwnd;
     private readonly TrayIconService _trayIcon;
+    private readonly GlobalHotKeyService _hotKeys;
     private bool _isExitRequested;
 
     public MainWindow()
@@ -31,8 +32,16 @@ public sealed partial class MainWindow : Window
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         AppWindow.Closing += AppWindow_Closing;
         _trayIcon = new TrayIconService(_hwnd, DispatcherQueue, ShowSettingsWindow, ExitFromTray);
+        _hotKeys = new GlobalHotKeyService(_hwnd, AppServices.Configuration);
+        AppServices.HotKeys = _hotKeys;
+        AppServices.Configuration.ConfigurationChanged += Configuration_ConfigurationChanged;
 
         NavigateTo(typeof(KeyMappingPage));
+    }
+
+    private void Configuration_ConfigurationChanged(object? sender, EventArgs e)
+    {
+        _hotKeys.Refresh();
     }
 
     private void TitleBar_PaneToggleRequested(TitleBar sender, object args)
@@ -83,6 +92,9 @@ public sealed partial class MainWindow : Window
     {
         if (_isExitRequested)
         {
+            AppServices.Configuration.ConfigurationChanged -= Configuration_ConfigurationChanged;
+            AppServices.HotKeys = null;
+            _hotKeys.Dispose();
             _trayIcon.Dispose();
             return;
         }

@@ -34,7 +34,7 @@
                     SmallChange="1"
                     SpinButtonPlacementMode="Inline"
                     Value="{x:Bind Seconds, Mode=TwoWay}"
-                    Visibility="{x:Bind SecondsVisibility}" />
+                    Visibility="{x:Bind SecondsVisibility, Mode=OneWay}" />
             </Grid>
         </DataTemplate>
     </Page.Resources>
@@ -45,8 +45,14 @@
                 <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="按键映射" />
                 <TextBlock
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="为 F1–F12 分配媒体、音量、亮度动作。M1 仅提供基础布局，实际热键与持久化将在 M2 完成。" />
+                    Text="为 F1–F12 分配媒体、音量、亮度动作。修改会自动保存，并立即刷新全局热键。" />
             </StackPanel>
+
+            <InfoBar
+                x:Name="HotKeyStatusInfoBar"
+                IsOpen="False"
+                Severity="Warning"
+                Title="热键注册失败" />
 
             <Border
                 Padding="16"
@@ -74,7 +80,7 @@
             </Border>
 
             <StackPanel Orientation="Horizontal" Spacing="12">
-                <Button Content="恢复默认" />
+                <Button Click="ResetDefaultsButton_Click" Content="恢复默认" />
                 <TextBlock
                     VerticalAlignment="Center"
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
