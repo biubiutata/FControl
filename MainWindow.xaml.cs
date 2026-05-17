@@ -1,10 +1,10 @@
 using System.Runtime.InteropServices;
-using FControl.Models;
 using FControl.Pages;
 using FControl.Services;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
+using Microsoft.UI.Xaml.Input;
 using Windows.Graphics;
 
 namespace FControl;
@@ -19,7 +19,7 @@ public sealed partial class MainWindow : Window
     private readonly TrayIconService _trayIcon;
     private readonly GlobalHotKeyService _hotKeys;
     private readonly HotKeyActionService _actions;
-    private InfoBar? _actionStatusInfoBar;
+    private readonly ActionOverlayWindow _overlayWindow;
     private bool _isExitRequested;
 
     public MainWindow()
@@ -30,13 +30,14 @@ public sealed partial class MainWindow : Window
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         AppWindow.SetIcon("Assets/AppIcon.ico");
-        AppWindow.Resize(new SizeInt32(980, 680));
+        ResizeMainWindowToWorkArea();
 
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         AppWindow.Closing += AppWindow_Closing;
         _trayIcon = new TrayIconService(_hwnd, DispatcherQueue, ShowSettingsWindow, ExitFromTray);
         _hotKeys = new GlobalHotKeyService(_hwnd, AppServices.Configuration);
         _actions = new HotKeyActionService(AppServices.Configuration);
+        _overlayWindow = new ActionOverlayWindow();
         _hotKeys.HotKeyTriggered += HotKeys_HotKeyTriggered;
         _actions.ActionExecuted += Actions_ActionExecuted;
         AppServices.HotKeys = _hotKeys;
@@ -92,9 +93,14 @@ public sealed partial class MainWindow : Window
             case "about":
                 NavigateTo(typeof(AboutPage));
                 break;
+            case "advancedSettings":
+                NavigateTo(typeof(AdvancedSettingsPage));
+                break;
             default:
                 throw new InvalidOperationException($"Unknown navigation item tag: {item.Tag}");
         }
+
+        UpdatePaneResizeGrip();
     }
 
     private void NavigateTo(Type pageType)
@@ -107,24 +113,30 @@ public sealed partial class MainWindow : Window
 
     private void ShowActionStatus(ActionExecutedEventArgs e)
     {
-        _actionStatusInfoBar ??= new InfoBar
-        {
-            IsClosable = true,
-            Margin = new Thickness(16),
-            VerticalAlignment = VerticalAlignment.Top,
-            HorizontalAlignment = HorizontalAlignment.Stretch
-        };
+        _overlayWindow.Show(e);
+    }
 
-        if (_actionStatusInfoBar.Parent is null)
-        {
-            Grid.SetRowSpan(_actionStatusInfoBar, 2);
-            RootGrid.Children.Add(_actionStatusInfoBar);
-        }
+    private void PaneResizeGrip_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
+    {
+        NavView.OpenPaneLength = Math.Clamp(NavView.OpenPaneLength + e.Delta.Translation.X, 180, 420);
+        UpdatePaneResizeGrip();
+    }
 
-        _actionStatusInfoBar.Severity = e.Result.Succeeded ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
-        _actionStatusInfoBar.Title = $"{e.Mapping.Key} · {HotKeyActionMetadata.GetDisplayName(e.Mapping.Action)}";
-        _actionStatusInfoBar.Message = e.Result.Message;
-        _actionStatusInfoBar.IsOpen = true;
+    private void UpdatePaneResizeGrip()
+    {
+        PaneResizeGrip.Margin = new Thickness(NavView.OpenPaneLength - PaneResizeGrip.Width / 2, 0, 0, 0);
+    }
+
+    private void ResizeMainWindowToWorkArea()
+    {
+        var displayArea = DisplayArea.GetFromWindowId(AppWindow.Id, DisplayAreaFallback.Nearest);
+        var workArea = displayArea.WorkArea;
+        var width = Math.Clamp((int)Math.Round(workArea.Width * 0.82), 980, 1500);
+        var height = Math.Clamp((int)Math.Round(workArea.Height * 0.78), 680, 1000);
+        var x = workArea.X + (workArea.Width - width) / 2;
+        var y = workArea.Y + (workArea.Height - height) / 2;
+        AppWindow.MoveAndResize(new RectInt32(x, y, width, height));
+        UpdatePaneResizeGrip();
     }
 
     private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
@@ -137,6 +149,7 @@ public sealed partial class MainWindow : Window
             AppServices.HotKeys = null;
             AppServices.Actions = null;
             _hotKeys.Dispose();
+            _overlayWindow.Dispose();
             _trayIcon.Dispose();
             return;
         }

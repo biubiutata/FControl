@@ -21,12 +21,15 @@ public sealed class HotKeyActionService
     {
         try
         {
+            AppServices.Log.Info($"执行动作：{mapping.Key} -> {mapping.Action}");
             var result = await ExecuteAsync(mapping);
+            AppServices.Log.Info($"动作结果：{mapping.Key} -> {(result.Succeeded ? "成功" : "失败")}，{result.Message}");
             ActionExecuted?.Invoke(this, new ActionExecutedEventArgs(mapping.Clone(), result));
         }
         catch (Exception ex)
         {
             Debug.WriteLine($"FControl action failed: {ex}");
+            AppServices.Log.Error($"动作异常：{mapping.Key} -> {mapping.Action}，{ex.Message}");
             ActionExecuted?.Invoke(this, new ActionExecutedEventArgs(mapping.Clone(), ControlActionResult.Failure(ex.Message)));
         }
     }
@@ -55,7 +58,10 @@ public sealed class HotKeyActionService
     {
         var result = _volumeService.ChangeVolumeByPercent(deltaPercent);
         return result.Succeeded
-            ? ControlActionResult.Success(result.IsMuted ? $"静音，音量 {result.VolumePercent}%" : $"音量 {result.VolumePercent}%")
+            ? ControlActionResult.Success(
+                result.IsMuted ? $"静音，音量 {result.VolumePercent}%" : $"音量 {result.VolumePercent}%",
+                result.VolumePercent,
+                result.IsMuted)
             : ControlActionResult.Failure($"音量控制失败：{result.Message}");
     }
 
@@ -63,7 +69,10 @@ public sealed class HotKeyActionService
     {
         var result = _volumeService.ToggleMute();
         return result.Succeeded
-            ? ControlActionResult.Success(result.IsMuted ? "已静音" : $"已取消静音，音量 {result.VolumePercent}%")
+            ? ControlActionResult.Success(
+                result.IsMuted ? "已静音" : $"已取消静音，音量 {result.VolumePercent}%",
+                result.VolumePercent,
+                result.IsMuted)
             : ControlActionResult.Failure($"静音切换失败：{result.Message}");
     }
 
@@ -81,7 +90,7 @@ public sealed class HotKeyActionService
             message += $"，{result.UnsupportedMonitorCount} 台不支持 DDC/CI";
         }
 
-        return ControlActionResult.Success(message);
+        return ControlActionResult.Success(message, result.BrightnessPercent);
     }
 
     private async Task<ControlActionResult> ExecuteMediaAsync(KeyMappingConfig mapping)
@@ -103,11 +112,11 @@ public sealed class HotKeyActionService
     }
 }
 
-public sealed record ControlActionResult(bool Succeeded, string Message)
+public sealed record ControlActionResult(bool Succeeded, string Message, int? LevelPercent = null, bool? IsMuted = null)
 {
-    public static ControlActionResult Success(string message)
+    public static ControlActionResult Success(string message, int? levelPercent = null, bool? isMuted = null)
     {
-        return new ControlActionResult(true, message);
+        return new ControlActionResult(true, message, levelPercent, isMuted);
     }
 
     public static ControlActionResult Failure(string message)

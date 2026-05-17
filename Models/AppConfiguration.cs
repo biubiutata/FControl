@@ -4,6 +4,8 @@ public sealed class AppConfiguration
 {
     public int Version { get; set; } = 1;
     public List<KeyMappingConfig> KeyMappings { get; set; } = AppConfigurationDefaults.CreateDefaultKeyMappings();
+    public double OverlayDurationSeconds { get; set; } = 3;
+    public int OverlayOpacityPercent { get; set; } = 80;
     public int BrightnessStepPercent { get; set; } = 5;
     public int VolumeStepPercent { get; set; } = 2;
 }
@@ -36,6 +38,8 @@ public static class AppConfigurationDefaults
         {
             Version = 1,
             KeyMappings = CreateDefaultKeyMappings(),
+            OverlayDurationSeconds = 3,
+            OverlayOpacityPercent = 80,
             BrightnessStepPercent = 5,
             VolumeStepPercent = 2
         };

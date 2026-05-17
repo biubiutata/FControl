@@ -43,6 +43,14 @@ public sealed class AppConfigurationService
         Save();
     }
 
+    public void SetOverlaySettings(double durationSeconds, int opacityPercent)
+    {
+        Current.OverlayDurationSeconds = durationSeconds;
+        Current.OverlayOpacityPercent = opacityPercent;
+        Current = Normalize(Current);
+        Save();
+    }
+
     public void ResetToDefaults()
     {
         Current = AppConfigurationDefaults.CreateDefault();
@@ -54,6 +62,7 @@ public sealed class AppConfigurationService
         Current = Normalize(Current);
         Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
         File.WriteAllText(ConfigPath, JsonSerializer.Serialize(Current, _jsonOptions));
+        AppServices.Log.Info($"配置已保存：{ConfigPath}");
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
 
@@ -85,6 +94,12 @@ public sealed class AppConfigurationService
         }
 
         normalized.Version = config.Version <= 0 ? 1 : config.Version;
+        normalized.OverlayDurationSeconds = config.OverlayDurationSeconds <= 0
+            ? normalized.OverlayDurationSeconds
+            : Math.Clamp(Math.Round(config.OverlayDurationSeconds * 2, MidpointRounding.AwayFromZero) / 2, 1, 10);
+        normalized.OverlayOpacityPercent = config.OverlayOpacityPercent <= 0
+            ? normalized.OverlayOpacityPercent
+            : Math.Clamp(config.OverlayOpacityPercent, 20, 100);
         normalized.BrightnessStepPercent = config.BrightnessStepPercent <= 0
             ? normalized.BrightnessStepPercent
             : Math.Clamp(config.BrightnessStepPercent, 1, 25);

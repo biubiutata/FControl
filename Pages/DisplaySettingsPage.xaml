@@ -13,7 +13,7 @@
                 <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="显示设置" />
                 <TextBlock
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="配置提示浮层外观与常用调节步进。M3 已接入亮度/音量调节步进，浮层外观设置将在 M4 完成。" />
+                    Text="配置提示浮层外观与常用调节步进。修改会自动保存，并在下次触发动作时生效。" />
             </StackPanel>
 
             <Border
@@ -26,23 +26,27 @@
                     <StackPanel Spacing="6">
                         <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="提示浮层持续时间" />
                         <Slider
+                            x:Name="OverlayDurationSlider"
                             Header="1–10 秒"
                             Maximum="10"
                             Minimum="1"
                             SmallChange="0.5"
                             StepFrequency="0.5"
-                            Value="3" />
+                            Value="3"
+                            ValueChanged="OverlaySlider_ValueChanged" />
                     </StackPanel>
 
                     <StackPanel Spacing="6">
                         <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="提示浮层透明度" />
                         <Slider
+                            x:Name="OverlayOpacitySlider"
                             Header="20%–100%"
                             Maximum="100"
                             Minimum="20"
                             SmallChange="5"
                             StepFrequency="5"
-                            Value="80" />
+                            Value="80"
+                            ValueChanged="OverlaySlider_ValueChanged" />
                     </StackPanel>
 
                     <Grid ColumnSpacing="16">
