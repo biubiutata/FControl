@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="FControl.Pages.KeyMappingPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:FControl.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <DataTemplate x:Key="KeyMappingTemplate" x:DataType="local:KeyMappingItem">
+            <Grid Padding="0,8" ColumnSpacing="16">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="72" />
+                    <ColumnDefinition Width="*" />
+                    <ColumnDefinition Width="160" />
+                </Grid.ColumnDefinitions>
+
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Style="{StaticResource BodyStrongTextBlockStyle}"
+                    Text="{x:Bind Key}" />
+                <ComboBox
+                    Grid.Column="1"
+                    HorizontalAlignment="Stretch"
+                    ItemsSource="{x:Bind Actions}"
+                    SelectedItem="{x:Bind Action, Mode=TwoWay}" />
+                <NumberBox
+                    Grid.Column="2"
+                    Header="秒数"
+                    Maximum="60"
+                    Minimum="1"
+                    SmallChange="1"
+                    SpinButtonPlacementMode="Inline"
+                    Value="{x:Bind Seconds, Mode=TwoWay}"
+                    Visibility="{x:Bind SecondsVisibility}" />
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <ScrollViewer>
+        <StackPanel Padding="24,16,24,24" Spacing="20">
+            <StackPanel Spacing="4">
+                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="按键映射" />
+                <TextBlock
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="为 F1–F12 分配媒体、音量、亮度动作。M1 仅提供基础布局，实际热键与持久化将在 M2 完成。" />
+            </StackPanel>
+
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="72" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="160" />
+                        </Grid.ColumnDefinitions>
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="功能键" />
+                        <TextBlock Grid.Column="1" Style="{StaticResource BodyStrongTextBlockStyle}" Text="动作" />
+                        <TextBlock Grid.Column="2" Style="{StaticResource BodyStrongTextBlockStyle}" Text="附加参数" />
+                    </Grid>
+
+                    <ListView
+                        IsItemClickEnabled="False"
+                        ItemTemplate="{StaticResource KeyMappingTemplate}"
+                        ItemsSource="{x:Bind KeyMappings}" />
+                </StackPanel>
+            </Border>
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Content="恢复默认" />
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="默认：F1/F2 亮度，F7–F9 媒体，F10–F12 音量。" />
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

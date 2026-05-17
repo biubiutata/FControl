@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="FControl.Pages.DisplaySettingsPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <ScrollViewer>
+        <StackPanel Padding="24,16,24,24" Spacing="20">
+            <StackPanel Spacing="4">
+                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="显示设置" />
+                <TextBlock
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="配置提示浮层外观与常用调节步进。M1 仅提供基础布局，实际生效逻辑将在后续里程碑完成。" />
+            </StackPanel>
+
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="18">
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="提示浮层持续时间" />
+                        <Slider
+                            Header="1–10 秒"
+                            Maximum="10"
+                            Minimum="1"
+                            SmallChange="0.5"
+                            StepFrequency="0.5"
+                            Value="3" />
+                    </StackPanel>
+
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="提示浮层透明度" />
+                        <Slider
+                            Header="20%–100%"
+                            Maximum="100"
+                            Minimum="20"
+                            SmallChange="5"
+                            StepFrequency="5"
+                            Value="80" />
+                    </StackPanel>
+
+                    <Grid ColumnSpacing="16">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+                        <NumberBox
+                            Header="亮度调节步进（%）"
+                            Maximum="25"
+                            Minimum="1"
+                            SmallChange="1"
+                            SpinButtonPlacementMode="Inline"
+                            Value="5" />
+                        <NumberBox
+                            Grid.Column="1"
+                            Header="音量调节步进（%）"
+                            Maximum="25"
+                            Minimum="1"
+                            SmallChange="1"
+                            SpinButtonPlacementMode="Inline"
+                            Value="2" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

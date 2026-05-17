@@ -1,0 +1,10 @@
+{
+  "profiles": {
+    "FControl (Package)": {
+      "commandName": "MsixPackage"
+    },
+    "FControl (Unpackaged)": {
+      "commandName": "Project"
+    }
+  }
+}
