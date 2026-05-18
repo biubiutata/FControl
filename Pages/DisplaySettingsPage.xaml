@@ -4,16 +4,17 @@
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:FControl.Pages"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     mc:Ignorable="d">
 
     <ScrollViewer>
         <StackPanel Padding="24,16,24,24" Spacing="20">
             <StackPanel Spacing="4">
-                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="显示设置" />
+                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="设置" />
                 <TextBlock
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="配置提示浮层外观与常用调节步进。修改会自动保存，并在下次触发动作时生效。" />
+                    Text="配置提示浮层与显示器 DDC/CI 检测。修改会自动保存，并在下次触发动作时生效。" />
             </StackPanel>
 
             <Border
@@ -23,6 +24,7 @@
                 BorderThickness="1"
                 CornerRadius="8">
                 <StackPanel Spacing="18">
+                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="显示与浮层" />
                     <StackPanel Spacing="6">
                         <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="提示浮层持续时间" />
                         <Slider
@@ -74,6 +76,38 @@
                             Value="2"
                             ValueChanged="ControlStepNumberBox_ValueChanged" />
                     </Grid>
+                </StackPanel>
+            </Border>
+
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="12">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="显示器 DDC/CI 检测" />
+                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="请检查显示器是否支持 DDC/CI 功能，并确认显示器菜单中已开启 DDC/CI。" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Click="DetectMonitorsButton_Click" Content="重新检测" />
+                    </Grid>
+                    <InfoBar x:Name="MonitorInfoBar" IsOpen="False" />
+                    <ListView ItemsSource="{x:Bind Monitors}" MaxHeight="220">
+                        <ListView.ItemTemplate>
+                            <DataTemplate x:DataType="local:MonitorDetectionItem">
+                                <StackPanel Padding="0,6" Spacing="2">
+                                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind Title}" />
+                                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind Detail}" TextWrapping="Wrap" />
+                                </StackPanel>
+                            </DataTemplate>
+                        </ListView.ItemTemplate>
+                    </ListView>
                 </StackPanel>
             </Border>
         </StackPanel>

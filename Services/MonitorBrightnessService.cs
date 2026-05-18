@@ -97,7 +97,19 @@ public sealed class MonitorBrightnessService
                     ? (int?)Math.Round((current - minimum) * 100.0 / (maximum - minimum))
                     : null;
 
-                return new MonitorBrightnessInfo(monitor.Description, isBrightnessSupported, brightness);
+                                var readError = isBrightnessSupported ? 0 : Marshal.GetLastWin32Error();
+                var error = isBrightnessSupported
+                    ? string.Empty
+                    : $"读取亮度失败（Win32 错误 {readError}）。请检查显示器是否支持 DDC/CI，并确认显示器菜单中已开启 DDC/CI。";
+
+                return new MonitorBrightnessInfo(
+                    monitor.Description,
+                    isBrightnessSupported,
+                    isBrightnessSupported,
+                    brightness,
+                    minimum,
+                    maximum,
+                    error);
             }).ToArray();
         }
         finally
@@ -223,4 +235,17 @@ public sealed record BrightnessControlResult(
     }
 }
 
-public sealed record MonitorBrightnessInfo(string Description, bool IsBrightnessSupported, int? BrightnessPercent);
+public sealed record MonitorBrightnessInfo(
+    string Description,
+    bool IsBrightnessSupported,
+    bool IsWriteSupported,
+    int? BrightnessPercent,
+    uint MinimumBrightness,
+    uint MaximumBrightness,
+    string ErrorMessage)
+{
+    public string StatusText => IsBrightnessSupported
+        ? $"DDC/CI 可用，当前亮度 {BrightnessPercent ?? 0}%"
+        : "DDC/CI 不可用";
+}
+

@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using FControl.Models;
 using FControl.Services;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
@@ -9,6 +10,7 @@ public sealed partial class AdvancedSettingsPage : Page
 {
     private readonly AppConfigurationService _configurationService = AppServices.Configuration;
     private readonly AppLogService _logService = AppServices.Log;
+    private readonly RuntimeEnvironmentService _runtimeService = new(AppServices.Configuration);
     private bool _isLoading = true;
 
     public ObservableCollection<string> LogLines { get; } = [];
@@ -25,6 +27,7 @@ public sealed partial class AdvancedSettingsPage : Page
         LoadSettings();
         Loaded += AdvancedSettingsPage_Loaded;
         Unloaded += AdvancedSettingsPage_Unloaded;
+        _ = DetectRuntimesAsync(updatePathBoxes: false);
     }
 
     private void LoadSettings()
@@ -35,6 +38,8 @@ public sealed partial class AdvancedSettingsPage : Page
         ColdStartSwitch.IsOn = _configurationService.Current.ColdStartEnabled;
         KeepTrayIconSwitch.IsOn = _configurationService.Current.KeepTrayIconEnabled;
         DebugLogSwitch.IsOn = _configurationService.Current.DebugLogEnabled;
+        PythonPathBox.Text = _configurationService.Current.RuntimePaths.PythonPath;
+        NodePathBox.Text = _configurationService.Current.RuntimePaths.NodePath;
         UpdateStartupOptionState();
         _isLoading = false;
     }
@@ -54,7 +59,6 @@ public sealed partial class AdvancedSettingsPage : Page
         DispatcherQueue.TryEnqueue(() =>
         {
             LogLines.Add(line);
-            LogListView.ScrollIntoView(line);
         });
     }
 
@@ -102,6 +106,120 @@ public sealed partial class AdvancedSettingsPage : Page
             DebugLogSwitch.IsOn);
 
         StartupRegistrationService.SetStartupEnabled(StartupSwitch.IsOn, ColdStartSwitch.IsOn);
+    }
+
+    private void RuntimePathBox_TextChanged(object sender, TextChangedEventArgs e)
+    {
+        if (_isLoading)
+        {
+            return;
+        }
+
+        SaveRuntimePaths();
+    }
+
+    private async void DetectRuntimesButton_Click(object sender, RoutedEventArgs e)
+    {
+        await DetectRuntimesAsync(updatePathBoxes: true);
+    }
+
+    private async void TestPythonButton_Click(object sender, RoutedEventArgs e)
+    {
+        var result = await _runtimeService.DetectPythonAsync();
+        ApplyRuntimeResult(PythonStatusText, result);
+        if (result.IsAvailable)
+        {
+            SetRuntimePathBox(PythonPathBox, result.Path);
+            SaveRuntimePaths();
+        }
+
+        ShowRuntimeInfo(result);
+    }
+
+    private async void TestNodeButton_Click(object sender, RoutedEventArgs e)
+    {
+        var result = await _runtimeService.DetectNodeAsync();
+        ApplyRuntimeResult(NodeStatusText, result);
+        if (result.IsAvailable)
+        {
+            SetRuntimePathBox(NodePathBox, result.Path);
+            SaveRuntimePaths();
+        }
+
+        ShowRuntimeInfo(result);
+    }
+
+    private void ClearPythonPathButton_Click(object sender, RoutedEventArgs e)
+    {
+        SetRuntimePathBox(PythonPathBox, string.Empty);
+        SaveRuntimePaths();
+        PythonStatusText.Text = "已清空，将使用自动检测。";
+    }
+
+    private void ClearNodePathButton_Click(object sender, RoutedEventArgs e)
+    {
+        SetRuntimePathBox(NodePathBox, string.Empty);
+        SaveRuntimePaths();
+        NodeStatusText.Text = "已清空，将使用自动检测。";
+    }
+
+    private async Task DetectRuntimesAsync(bool updatePathBoxes)
+    {
+        RuntimeInfoBar.IsOpen = true;
+        RuntimeInfoBar.Severity = InfoBarSeverity.Informational;
+        RuntimeInfoBar.Message = "正在检测 Python 和 Node.js...";
+        var pythonTask = updatePathBoxes ? _runtimeService.DetectPythonAutoAsync() : _runtimeService.DetectPythonAsync();
+        var nodeTask = updatePathBoxes ? _runtimeService.DetectNodeAutoAsync() : _runtimeService.DetectNodeAsync();
+        var results = await Task.WhenAll(pythonTask, nodeTask);
+        ApplyRuntimeResult(PythonStatusText, results[0]);
+        ApplyRuntimeResult(NodeStatusText, results[1]);
+
+        if (updatePathBoxes)
+        {
+            if (results[0].IsAvailable)
+            {
+                SetRuntimePathBox(PythonPathBox, results[0].Path);
+            }
+
+            if (results[1].IsAvailable)
+            {
+                SetRuntimePathBox(NodePathBox, results[1].Path);
+            }
+
+            SaveRuntimePaths();
+        }
+
+        RuntimeInfoBar.Severity = results.All(static result => result.IsAvailable) ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
+        RuntimeInfoBar.Message = "检测完成。检测成功的路径已显示在自定义路径输入框中。";
+    }
+
+    private static void ApplyRuntimeResult(TextBlock target, RuntimeDetectionResult result)
+    {
+        target.Text = result.IsAvailable
+            ? $"{result.Version}"
+            : result.Message;
+    }
+
+    private void ShowRuntimeInfo(RuntimeDetectionResult result)
+    {
+        RuntimeInfoBar.IsOpen = true;
+        RuntimeInfoBar.Severity = result.IsAvailable ? InfoBarSeverity.Success : InfoBarSeverity.Error;
+        RuntimeInfoBar.Message = result.IsAvailable ? $"{result.Name} 可用：{result.Version}" : result.Message;
+    }
+
+    private void SetRuntimePathBox(TextBox box, string path)
+    {
+        _isLoading = true;
+        box.Text = path;
+        _isLoading = false;
+    }
+
+    private void SaveRuntimePaths()
+    {
+        var paths = _configurationService.Current.RuntimePaths.Clone();
+        paths.PythonPath = PythonPathBox.Text.Trim();
+        paths.NodePath = NodePathBox.Text.Trim();
+        _configurationService.SetRuntimePaths(paths);
     }
 
     private void UpdateStartupOptionState()

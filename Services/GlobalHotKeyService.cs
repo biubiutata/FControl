@@ -7,6 +7,7 @@ namespace FControl.Services;
 public sealed class GlobalHotKeyService : IDisposable
 {
     private const int FirstHotKeyId = 0x4600;
+    private const int FirstCustomHotKeyId = 0x4700;
     private const int WmHotKey = 0x0312;
     private const uint NoModifiers = 0x0000;
     private const nuint SubclassId = 2;
@@ -23,7 +24,7 @@ public sealed class GlobalHotKeyService : IDisposable
     private readonly AppConfigurationService _configurationService;
     private readonly SubclassProc _subclassProc;
     private readonly LowLevelKeyboardProc _keyboardProc;
-    private readonly Dictionary<int, KeyMappingConfig> _registeredMappings = [];
+    private readonly Dictionary<int, HotkeyRegistration> _registeredMappings = [];
     private readonly Dictionary<int, KeyMappingConfig> _hookMappings = [];
     private nint _keyboardHook;
     private bool _disposed;
@@ -45,8 +46,74 @@ public sealed class GlobalHotKeyService : IDisposable
 
     public event EventHandler<IReadOnlyList<HotKeyRegistrationFailure>>? RegistrationChanged;
     public event EventHandler<HotKeyTriggeredEventArgs>? HotKeyTriggered;
+    public event EventHandler<CustomHotkeyTriggeredEventArgs>? CustomHotkeyTriggered;
 
     public IReadOnlyList<HotKeyRegistrationFailure> LastRegistrationFailures { get; private set; } = [];
+
+    public IReadOnlyList<HotkeyConflict> ValidateCustomHotkeys(IEnumerable<CustomHotkeyConfig> hotkeys)
+    {
+        UnregisterAll();
+        try
+        {
+            return ValidateCustomHotkeysCore(hotkeys);
+        }
+        finally
+        {
+            Refresh();
+        }
+    }
+
+    private IReadOnlyList<HotkeyConflict> ValidateCustomHotkeysCore(IEnumerable<CustomHotkeyConfig> hotkeys)
+    {
+        var conflicts = new List<HotkeyConflict>();
+        var enabledHotkeys = hotkeys.Where(static hotkey => hotkey.Enabled).Select(static hotkey => hotkey.Clone()).ToList();
+        var seen = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+
+        foreach (var hotkey in enabledHotkeys)
+        {
+            if (!HotkeyParser.TryParse(hotkey.Hotkey, out var definition, out var parseError))
+            {
+                conflicts.Add(new HotkeyConflict(hotkey.Id, hotkey.Hotkey, parseError));
+                continue;
+            }
+
+            hotkey.Hotkey = definition.DisplayText;
+            if (HotkeyParser.IsReserved(definition, out var reservedReason))
+            {
+                conflicts.Add(new HotkeyConflict(hotkey.Id, hotkey.Hotkey, reservedReason));
+            }
+
+            if (seen.TryGetValue(definition.DisplayText, out var existingName))
+            {
+                conflicts.Add(new HotkeyConflict(hotkey.Id, hotkey.Hotkey, $"与“{existingName}”重复。"));
+            }
+            else
+            {
+                seen[definition.DisplayText] = hotkey.Name;
+            }
+
+            foreach (var mapping in _configurationService.Current.KeyMappings.Where(static mapping => mapping.Action != HotKeyAction.Disabled))
+            {
+                var functionNumber = GetFunctionKeyNumber(mapping.Key);
+                if (functionNumber is null || definition.Modifiers != 0)
+                {
+                    continue;
+                }
+
+                if (definition.VirtualKey == VirtualKeyF1 + functionNumber.Value - 1)
+                {
+                    conflicts.Add(new HotkeyConflict(hotkey.Id, hotkey.Hotkey, $"与 {mapping.Key} 按键映射冲突。"));
+                }
+            }
+
+            if (!conflicts.Any(conflict => conflict.HotkeyId == hotkey.Id) && !HotkeyParser.TryRegisterForProbe(_hwnd, definition, out var errorCode))
+            {
+                conflicts.Add(new HotkeyConflict(hotkey.Id, hotkey.Hotkey, $"该快捷键可能已被系统或其他应用占用（Win32 错误 {errorCode}）。"));
+            }
+        }
+
+        return conflicts;
+    }
 
     public void Refresh()
     {
@@ -79,13 +146,40 @@ public sealed class GlobalHotKeyService : IDisposable
 
             if (RegisterHotKey(_hwnd, hotKeyId, NoModifiers, (uint)virtualKey))
             {
-                _registeredMappings[hotKeyId] = mapping.Clone();
+                _registeredMappings[hotKeyId] = HotkeyRegistration.ForKeyMapping(mapping.Clone());
                 continue;
             }
 
             var errorCode = Marshal.GetLastWin32Error();
             _hookMappings[virtualKey] = mapping.Clone();
             failures.Add(new HotKeyRegistrationFailure(mapping.Key, errorCode, true));
+        }
+
+        var customIndex = 0;
+        foreach (var hotkey in _configurationService.Current.CustomHotkeys.Where(static hotkey => hotkey.Enabled))
+        {
+            if (!HotkeyParser.TryParse(hotkey.Hotkey, out var definition, out var parseError))
+            {
+                failures.Add(new HotKeyRegistrationFailure(hotkey.Hotkey, 0, false, parseError));
+                continue;
+            }
+
+            if (HotkeyParser.IsReserved(definition, out var reservedReason))
+            {
+                failures.Add(new HotKeyRegistrationFailure(definition.DisplayText, 0, false, reservedReason));
+                continue;
+            }
+
+            var hotKeyId = FirstCustomHotKeyId + customIndex++;
+            if (RegisterHotKey(_hwnd, hotKeyId, definition.Modifiers | HotkeyParser.ModNoRepeat, definition.VirtualKey))
+            {
+                var clone = hotkey.Clone();
+                clone.Hotkey = definition.DisplayText;
+                _registeredMappings[hotKeyId] = HotkeyRegistration.ForCustomHotkey(clone);
+                continue;
+            }
+
+            failures.Add(new HotKeyRegistrationFailure(definition.DisplayText, Marshal.GetLastWin32Error()));
         }
 
         if (_hookMappings.Count > 0)
@@ -111,10 +205,19 @@ public sealed class GlobalHotKeyService : IDisposable
 
     private nint WindowSubclassProc(nint hWnd, uint msg, nint wParam, nint lParam, nuint uIdSubclass, nint dwRefData)
     {
-        if (msg == WmHotKey && _registeredMappings.TryGetValue(unchecked((int)wParam), out var mapping))
+        if (msg == WmHotKey && _registeredMappings.TryGetValue(unchecked((int)wParam), out var registration))
         {
-            Trigger(mapping, "RegisterHotKey");
-            return 0;
+            if (registration.KeyMapping is not null)
+            {
+                Trigger(registration.KeyMapping, "RegisterHotKey");
+                return 0;
+            }
+
+            if (registration.CustomHotkey is not null)
+            {
+                Trigger(registration.CustomHotkey, "RegisterHotKey");
+                return 0;
+            }
         }
 
         return DefSubclassProc(hWnd, msg, wParam, lParam);
@@ -147,6 +250,13 @@ public sealed class GlobalHotKeyService : IDisposable
         Debug.WriteLine($"FControl hotkey ({source}): {mapping.Key} -> {mapping.Action}");
         AppServices.Log.Info($"热键触发（{source}）：{mapping.Key} -> {mapping.Action}");
         HotKeyTriggered?.Invoke(this, new HotKeyTriggeredEventArgs(mapping.Clone()));
+    }
+
+    private void Trigger(CustomHotkeyConfig hotkey, string source)
+    {
+        Debug.WriteLine($"FControl custom hotkey ({source}): {hotkey.Hotkey} -> {hotkey.Name}");
+        AppServices.Log.Info($"自定义快捷键触发（{source}）：{hotkey.Hotkey} -> {hotkey.Name}");
+        CustomHotkeyTriggered?.Invoke(this, new CustomHotkeyTriggeredEventArgs(hotkey.Clone()));
     }
 
     private void EnsureKeyboardHook()
@@ -211,6 +321,19 @@ public sealed class GlobalHotKeyService : IDisposable
         public nint dwExtraInfo;
     }
 
+    private sealed record HotkeyRegistration(KeyMappingConfig? KeyMapping, CustomHotkeyConfig? CustomHotkey)
+    {
+        public static HotkeyRegistration ForKeyMapping(KeyMappingConfig mapping)
+        {
+            return new HotkeyRegistration(mapping, null);
+        }
+
+        public static HotkeyRegistration ForCustomHotkey(CustomHotkeyConfig hotkey)
+        {
+            return new HotkeyRegistration(null, hotkey);
+        }
+    }
+
     private delegate nint SubclassProc(nint hWnd, uint msg, nint wParam, nint lParam, nuint uIdSubclass, nint dwRefData);
     private delegate nint LowLevelKeyboardProc(int nCode, nint wParam, nint lParam);
 
@@ -242,18 +365,37 @@ public sealed class GlobalHotKeyService : IDisposable
     private static extern nint DefSubclassProc(nint hWnd, uint uMsg, nint wParam, nint lParam);
 }
 
-public sealed record HotKeyRegistrationFailure(string Key, int ErrorCode, bool FallbackEnabled = false)
+public sealed record HotKeyRegistrationFailure(string Key, int ErrorCode, bool FallbackEnabled = false, string? CustomMessage = null)
 {
-    public string Message => ErrorCode switch
+    public string Message
     {
-        1409 when FallbackEnabled => $"{Key} 已被其他应用占用，已启用兼容模式兜底。",
-        1409 => $"{Key} 已被其他应用占用，未能注册。",
-        _ when FallbackEnabled => $"{Key} 注册失败（Win32 错误 {ErrorCode}），已启用兼容模式兜底。",
-        _ => $"{Key} 注册失败（Win32 错误 {ErrorCode}）。"
-    };
+        get
+        {
+            if (!string.IsNullOrWhiteSpace(CustomMessage))
+            {
+                return $"{Key}：{CustomMessage}";
+            }
+
+            return ErrorCode switch
+            {
+                1409 when FallbackEnabled => $"{Key} 已被其他应用占用，已启用兼容模式兜底。",
+                1409 => $"{Key} 已被其他应用占用，未能注册。",
+                _ when FallbackEnabled => $"{Key} 注册失败（Win32 错误 {ErrorCode}），已启用兼容模式兜底。",
+                _ => $"{Key} 注册失败（Win32 错误 {ErrorCode}）。"
+            };
+        }
+    }
 }
+
+public sealed record HotkeyConflict(string HotkeyId, string Hotkey, string Message);
 
 public sealed class HotKeyTriggeredEventArgs(KeyMappingConfig mapping) : EventArgs
 {
     public KeyMappingConfig Mapping { get; } = mapping;
 }
+
+public sealed class CustomHotkeyTriggeredEventArgs(CustomHotkeyConfig hotkey) : EventArgs
+{
+    public CustomHotkeyConfig Hotkey { get; } = hotkey;
+}
+

@@ -72,6 +72,20 @@ public sealed partial class ActionOverlayWindow : Window
         });
     }
 
+    public void Show(ScriptActionExecutedEventArgs e)
+    {
+        if (!e.Hotkey.ShowOverlay)
+        {
+            return;
+        }
+
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            UpdateScriptContent(e);
+            ShowOverlay();
+        });
+    }
+
     public void Dispose()
     {
         _timer.Stop();
@@ -108,6 +122,21 @@ public sealed partial class ActionOverlayWindow : Window
             OverlayContentGrid.MinHeight = 76;
             AppWindow.Resize(CompactOverlaySize);
         }
+    }
+
+    private void UpdateScriptContent(ScriptActionExecutedEventArgs e)
+    {
+        OverlayTitleText.Text = $"{e.Hotkey.Hotkey} · {e.Hotkey.Name}";
+        OverlayMessageText.Text = e.Result.Message;
+        OverlayIcon.Glyph = e.Result.Succeeded ? "\uE756" : "\uE7BA";
+        _currentAction = HotKeyAction.Disabled;
+        OverlayLevelPanel.Visibility = Visibility.Collapsed;
+        _isUpdatingSlider = true;
+        OverlayLevelSlider.Value = 0;
+        _isUpdatingSlider = false;
+        OverlayPercentText.Text = string.Empty;
+        OverlayContentGrid.MinHeight = 76;
+        AppWindow.Resize(CompactOverlaySize);
     }
 
     private void ShowOverlay()
@@ -310,3 +339,4 @@ public sealed partial class ActionOverlayWindow : Window
     [System.Runtime.InteropServices.DllImport("dwmapi.dll", SetLastError = true)]
     private static extern int DwmSetWindowAttribute(nint hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
 }
+

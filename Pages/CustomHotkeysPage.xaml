@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<Page
+    x:Class="FControl.Pages.CustomHotkeysPage"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="using:FControl.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    mc:Ignorable="d">
+
+    <Page.Resources>
+        <DataTemplate x:Key="CustomHotkeyTemplate" x:DataType="local:CustomHotkeyItem">
+            <Grid Padding="0,10" ColumnSpacing="12">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="72" />
+                    <ColumnDefinition Width="180" />
+                    <ColumnDefinition Width="130" />
+                    <ColumnDefinition Width="120" />
+                    <ColumnDefinition Width="260" />
+                    <ColumnDefinition Width="Auto" />
+                </Grid.ColumnDefinitions>
+
+                <ToggleSwitch
+                    VerticalAlignment="Center"
+                    IsOn="{x:Bind Enabled, Mode=TwoWay}"
+                    Tag="{x:Bind Id}"
+                    Toggled="HotkeyEnabledSwitch_Toggled" />
+                <StackPanel Grid.Column="1" VerticalAlignment="Center" Spacing="2">
+                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind Name}" TextTrimming="CharacterEllipsis" />
+                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind Hotkey}" TextTrimming="CharacterEllipsis" />
+                </StackPanel>
+                <TextBlock Grid.Column="2" VerticalAlignment="Center" Text="{x:Bind ScriptTypeName}" />
+                <TextBlock Grid.Column="3" VerticalAlignment="Center" Text="{x:Bind ScriptModeName}" />
+                <TextBlock Grid.Column="4" VerticalAlignment="Center" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind TargetSummary}" TextTrimming="CharacterEllipsis" />
+                <StackPanel Grid.Column="5" VerticalAlignment="Center" Orientation="Horizontal" Spacing="8">
+                    <Button Click="EditHotkeyButton_Click" Content="编辑" Tag="{x:Bind Id}" />
+                    <Button Click="CopyHotkeyButton_Click" Content="复制" Tag="{x:Bind Id}" />
+                    <Button Click="TestHotkeyButton_Click" Content="测试" Tag="{x:Bind Id}" />
+                    <Button Click="DeleteHotkeyButton_Click" Content="删除" Tag="{x:Bind Id}" />
+                </StackPanel>
+            </Grid>
+        </DataTemplate>
+    </Page.Resources>
+
+    <ScrollViewer>
+        <StackPanel Padding="24,16,24,24" Spacing="20">
+            <StackPanel Spacing="4">
+                <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="快捷键功能" />
+                <TextBlock
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="新增组合快捷键并执行本地脚本。脚本以当前用户权限运行，请只执行可信代码。" />
+            </StackPanel>
+
+            <InfoBar
+                x:Name="StatusInfoBar"
+                IsOpen="False" />
+
+            <StackPanel Orientation="Horizontal" Spacing="12">
+                <Button Click="AddHotkeyButton_Click" Content="新增快捷键" />
+                <TextBlock
+                    VerticalAlignment="Center"
+                    Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                    Text="新增、编辑或切换启用状态时会自动保存，并检测软件内重复、系统保留键和整个系统占用。" />
+            </StackPanel>
+
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <ScrollViewer
+                    HorizontalScrollBarVisibility="Auto"
+                    HorizontalScrollMode="Enabled"
+                    VerticalScrollBarVisibility="Disabled"
+                    VerticalScrollMode="Disabled">
+                    <StackPanel MinWidth="1040" Spacing="12">
+                        <Grid ColumnSpacing="12">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="72" />
+                                <ColumnDefinition Width="180" />
+                                <ColumnDefinition Width="130" />
+                                <ColumnDefinition Width="120" />
+                                <ColumnDefinition Width="260" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="启用" />
+                            <TextBlock Grid.Column="1" Style="{StaticResource BodyStrongTextBlockStyle}" Text="名称 / 快捷键" />
+                            <TextBlock Grid.Column="2" Style="{StaticResource BodyStrongTextBlockStyle}" Text="脚本类型" />
+                            <TextBlock Grid.Column="3" Style="{StaticResource BodyStrongTextBlockStyle}" Text="模式" />
+                            <TextBlock Grid.Column="4" Style="{StaticResource BodyStrongTextBlockStyle}" Text="目标" />
+                            <TextBlock Grid.Column="5" Style="{StaticResource BodyStrongTextBlockStyle}" Text="操作" />
+                        </Grid>
+
+                        <ListView
+                            x:Name="HotkeysListView"
+                            IsItemClickEnabled="False"
+                            ItemTemplate="{StaticResource CustomHotkeyTemplate}"
+                            ItemsSource="{x:Bind Hotkeys}"
+                            ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                            ScrollViewer.HorizontalScrollMode="Disabled" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Border>
+
+            <StackPanel Spacing="6">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="最近执行记录" />
+                    <Button Grid.Column="1" Click="ClearRecentRunsButton_Click" Content="清空记录" />
+                </Grid>
+                <ListView x:Name="RecentRunsListView" ItemsSource="{x:Bind RecentRuns}" MaxHeight="240">
+                    <ListView.ItemTemplate>
+                        <DataTemplate x:DataType="local:RecentScriptRunItem">
+                            <StackPanel Padding="0,6" Spacing="2">
+                                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="{x:Bind Title}" />
+                                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="{x:Bind Details}" TextWrapping="Wrap" />
+                            </StackPanel>
+                        </DataTemplate>
+                    </ListView.ItemTemplate>
+                </ListView>
+            </StackPanel>
+        </StackPanel>
+    </ScrollViewer>
+</Page>

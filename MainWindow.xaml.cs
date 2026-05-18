@@ -41,7 +41,9 @@ public sealed partial class MainWindow : Window
         _overlayWindow = new ActionOverlayWindow();
         ApplyTrayIconPreference();
         _hotKeys.HotKeyTriggered += HotKeys_HotKeyTriggered;
+        _hotKeys.CustomHotkeyTriggered += HotKeys_CustomHotkeyTriggered;
         _actions.ActionExecuted += Actions_ActionExecuted;
+        _actions.ScriptActionExecuted += Actions_ScriptActionExecuted;
         AppServices.HotKeys = _hotKeys;
         AppServices.Actions = _actions;
         AppServices.Configuration.ConfigurationChanged += Configuration_ConfigurationChanged;
@@ -52,8 +54,11 @@ public sealed partial class MainWindow : Window
 
     private void Configuration_ConfigurationChanged(object? sender, EventArgs e)
     {
-        _hotKeys.Refresh();
-        ApplyTrayIconPreference();
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            _hotKeys.Refresh();
+            ApplyTrayIconPreference();
+        });
     }
 
     private void HotKeys_HotKeyTriggered(object? sender, HotKeyTriggeredEventArgs e)
@@ -61,11 +66,19 @@ public sealed partial class MainWindow : Window
         _actions.Execute(e.Mapping);
     }
 
+    private void HotKeys_CustomHotkeyTriggered(object? sender, CustomHotkeyTriggeredEventArgs e)
+    {
+        _actions.Execute(e.Hotkey);
+    }
     private void Actions_ActionExecuted(object? sender, ActionExecutedEventArgs e)
     {
         DispatcherQueue.TryEnqueue(() => ShowActionStatus(e));
     }
 
+    private void Actions_ScriptActionExecuted(object? sender, ScriptActionExecutedEventArgs e)
+    {
+        DispatcherQueue.TryEnqueue(() => _overlayWindow.Show(e));
+    }
     private void TitleBar_PaneToggleRequested(TitleBar sender, object args)
     {
         NavView.IsPaneOpen = !NavView.IsPaneOpen;
@@ -90,6 +103,9 @@ public sealed partial class MainWindow : Window
         {
             case "keyMapping":
                 NavigateTo(typeof(KeyMappingPage));
+                break;
+            case "customHotkeys":
+                NavigateTo(typeof(CustomHotkeysPage));
                 break;
             case "displaySettings":
                 NavigateTo(typeof(DisplaySettingsPage));
@@ -179,7 +195,9 @@ public sealed partial class MainWindow : Window
             AppServices.Configuration.ConfigurationChanged -= Configuration_ConfigurationChanged;
             RootGrid.ActualThemeChanged -= RootGrid_ActualThemeChanged;
             _hotKeys.HotKeyTriggered -= HotKeys_HotKeyTriggered;
+            _hotKeys.CustomHotkeyTriggered -= HotKeys_CustomHotkeyTriggered;
             _actions.ActionExecuted -= Actions_ActionExecuted;
+            _actions.ScriptActionExecuted -= Actions_ScriptActionExecuted;
             AppServices.HotKeys = null;
             AppServices.Actions = null;
             _hotKeys.Dispose();
@@ -244,3 +262,5 @@ public sealed partial class MainWindow : Window
     [DllImport("user32.dll")]
     private static extern bool ShowWindow(nint hWnd, int nCmdShow);
 }
+
+

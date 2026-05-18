@@ -9,6 +9,7 @@ public sealed class HotKeyActionService
     private readonly SystemVolumeService _volumeService = new();
     private readonly MediaControlService _mediaService = new();
     private readonly MonitorBrightnessService _brightnessService = new();
+    private readonly ScriptExecutionService _scriptService;
     private readonly SemaphoreSlim _brightnessGate = new(1, 1);
     private readonly object _brightnessStateGate = new();
     private int? _lastBrightnessPercent;
@@ -17,10 +18,12 @@ public sealed class HotKeyActionService
     public HotKeyActionService(AppConfigurationService configurationService)
     {
         _configurationService = configurationService;
+        _scriptService = new ScriptExecutionService(configurationService);
         _ = InitializeBrightnessCacheAsync();
     }
 
     public event EventHandler<ActionExecutedEventArgs>? ActionExecuted;
+    public event EventHandler<ScriptActionExecutedEventArgs>? ScriptActionExecuted;
 
     public async void Execute(KeyMappingConfig mapping)
     {
@@ -43,6 +46,38 @@ public sealed class HotKeyActionService
             AppServices.Log.Error($"动作异常：{mapping.Key} -> {mapping.Action}，{ex.Message}");
             ActionExecuted?.Invoke(this, new ActionExecutedEventArgs(mapping.Clone(), ControlActionResult.Failure(ex.Message)));
         }
+    }
+
+    public async void Execute(CustomHotkeyConfig hotkey)
+    {
+        try
+        {
+            AppServices.Log.Info($"执行脚本：{hotkey.Hotkey} -> {hotkey.Name}");
+            var result = await _scriptService.ExecuteAsync(hotkey);
+            _configurationService.AddScriptRunResult(result);
+            AppServices.Log.Info($"脚本结果：{hotkey.Hotkey} -> {(result.Succeeded ? "成功" : "失败")}，{result.Message}");
+            ScriptActionExecuted?.Invoke(this, new ScriptActionExecutedEventArgs(hotkey.Clone(), result));
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"FControl script failed: {ex}");
+            var result = new ScriptRunResult
+            {
+                HotkeyId = hotkey.Id,
+                HotkeyName = hotkey.Name,
+                Hotkey = hotkey.Hotkey,
+                ScriptType = hotkey.ScriptType,
+                Succeeded = false,
+                Message = ex.Message
+            };
+            _configurationService.AddScriptRunResult(result);
+            ScriptActionExecuted?.Invoke(this, new ScriptActionExecutedEventArgs(hotkey.Clone(), result));
+        }
+    }
+
+    public Task<ScriptRunResult> TestScriptAsync(CustomHotkeyConfig hotkey)
+    {
+        return _scriptService.TestAsync(hotkey);
     }
 
     private async Task<ControlActionResult> ExecuteAsync(KeyMappingConfig mapping)
@@ -235,4 +270,10 @@ public sealed class ActionExecutedEventArgs(KeyMappingConfig mapping, ControlAct
 {
     public KeyMappingConfig Mapping { get; } = mapping;
     public ControlActionResult Result { get; } = result;
+}
+
+public sealed class ScriptActionExecutedEventArgs(CustomHotkeyConfig hotkey, ScriptRunResult result) : EventArgs
+{
+    public CustomHotkeyConfig Hotkey { get; } = hotkey;
+    public ScriptRunResult Result { get; } = result;
 }

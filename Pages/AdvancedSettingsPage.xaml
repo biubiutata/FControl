@@ -13,7 +13,7 @@
                 <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="高级设置" />
                 <TextBlock
                     Foreground="{ThemeResource TextFillColorSecondaryBrush}"
-                    Text="配置后台运行、启动行为与兼容性选项。" />
+                    Text="配置后台运行、启动行为、兼容性选项与脚本运行环境。" />
             </StackPanel>
 
             <Border
@@ -48,6 +48,55 @@
                 </StackPanel>
             </Border>
 
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+                        <StackPanel Spacing="4">
+                            <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="脚本运行环境" />
+                            <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="检测 Python、Node.js 环境；检测成功后会把路径填入自定义路径输入框。" />
+                        </StackPanel>
+                        <Button Grid.Column="1" Click="DetectRuntimesButton_Click" Content="重新检测" />
+                    </Grid>
+
+                    <InfoBar x:Name="RuntimeInfoBar" IsOpen="False" />
+
+                    <Grid ColumnSpacing="12" RowSpacing="12">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto" />
+                            <RowDefinition Height="Auto" />
+                        </Grid.RowDefinitions>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="120" />
+                            <ColumnDefinition Width="*" />
+                            <ColumnDefinition Width="180" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                        </Grid.ColumnDefinitions>
+
+                        <TextBlock VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" Text="Python" />
+                        <TextBox x:Name="PythonPathBox" Grid.Column="1" Header="自定义路径" TextChanged="RuntimePathBox_TextChanged" />
+                        <TextBlock x:Name="PythonStatusText" Grid.Column="2" VerticalAlignment="Bottom" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="未检测" TextWrapping="Wrap" />
+                        <Button Grid.Column="3" VerticalAlignment="Bottom" Click="TestPythonButton_Click" Content="测试" />
+                        <Button Grid.Column="4" VerticalAlignment="Bottom" Click="ClearPythonPathButton_Click" Content="清空" />
+
+                        <TextBlock Grid.Row="1" VerticalAlignment="Center" Style="{StaticResource BodyStrongTextBlockStyle}" Text="Node.js" />
+                        <TextBox x:Name="NodePathBox" Grid.Row="1" Grid.Column="1" Header="自定义路径" TextChanged="RuntimePathBox_TextChanged" />
+                        <TextBlock x:Name="NodeStatusText" Grid.Row="1" Grid.Column="2" VerticalAlignment="Bottom" Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="未检测" TextWrapping="Wrap" />
+                        <Button Grid.Row="1" Grid.Column="3" VerticalAlignment="Bottom" Click="TestNodeButton_Click" Content="测试" />
+                        <Button Grid.Row="1" Grid.Column="4" VerticalAlignment="Bottom" Click="ClearNodePathButton_Click" Content="清空" />
+                    </Grid>
+                </StackPanel>
+            </Border>
+
             <StackPanel Spacing="4">
                 <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="运行日志" />
                 <TextBlock
@@ -67,21 +116,27 @@
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="8">
-                <ListView
-                    x:Name="LogListView"
-                    ItemsSource="{x:Bind LogLines}"
-                    ScrollViewer.HorizontalScrollBarVisibility="Auto"
-                    ScrollViewer.VerticalScrollBarVisibility="Auto">
-                    <ListView.ItemTemplate>
-                        <DataTemplate>
-                            <TextBlock
-                                FontFamily="Consolas"
-                                FontSize="12"
-                                Text="{Binding}"
-                                TextWrapping="NoWrap" />
-                        </DataTemplate>
-                    </ListView.ItemTemplate>
-                </ListView>
+                <ScrollViewer
+                    HorizontalScrollBarVisibility="Auto"
+                    HorizontalScrollMode="Enabled"
+                    VerticalScrollBarVisibility="Auto"
+                    VerticalScrollMode="Enabled"
+                    ZoomMode="Disabled">
+                    <ItemsControl
+                        x:Name="LogListView"
+                        ItemsSource="{x:Bind LogLines}">
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock
+                                    Padding="0,4"
+                                    FontFamily="Consolas"
+                                    FontSize="12"
+                                    Text="{Binding}"
+                                    TextWrapping="NoWrap" />
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                </ScrollViewer>
             </Border>
 
             <InfoBar

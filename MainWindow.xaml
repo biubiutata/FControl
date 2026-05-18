@@ -48,6 +48,11 @@
                         <FontIcon Glyph="&#xE765;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
+                <NavigationViewItem Content="快捷键功能" Tag="customHotkeys">
+                    <NavigationViewItem.Icon>
+                        <FontIcon Glyph="&#xE756;" />
+                    </NavigationViewItem.Icon>
+                </NavigationViewItem>
                 <NavigationViewItem Content="显示设置" Tag="displaySettings">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE7F4;" />
@@ -68,3 +73,4 @@
         </NavigationView>
     </Grid>
 </Window>
+

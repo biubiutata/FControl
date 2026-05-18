@@ -6,6 +6,8 @@ namespace FControl.Services;
 
 public sealed class AppConfigurationService
 {
+    private const int MaxRecentScriptRuns = 20;
+
     private readonly JsonSerializerOptions _jsonOptions = new()
     {
         WriteIndented = true,
@@ -32,6 +34,44 @@ public sealed class AppConfigurationService
     {
         Current.KeyMappings = mappings.Select(static mapping => mapping.Clone()).ToList();
         Current = Normalize(Current);
+        Save();
+    }
+
+    public void SetCustomHotkeys(IEnumerable<CustomHotkeyConfig> hotkeys)
+    {
+        Current.CustomHotkeys = hotkeys.Select(static hotkey => hotkey.Clone()).ToList();
+        Current = Normalize(Current);
+        Save();
+    }
+
+    public void SetRuntimePaths(RuntimePathConfig runtimePaths)
+    {
+        Current.RuntimePaths = runtimePaths.Clone();
+        Current = Normalize(Current);
+        Save();
+    }
+
+    public void AcceptScriptSafetyWarning()
+    {
+        Current.ScriptSafetyWarningAccepted = true;
+        Current = Normalize(Current);
+        Save();
+    }
+
+    public void AddScriptRunResult(ScriptRunResult result)
+    {
+        Current.RecentScriptRuns.Insert(0, result.Clone());
+        if (Current.RecentScriptRuns.Count > MaxRecentScriptRuns)
+        {
+            Current.RecentScriptRuns.RemoveRange(MaxRecentScriptRuns, Current.RecentScriptRuns.Count - MaxRecentScriptRuns);
+        }
+
+        Save();
+    }
+
+    public void ClearScriptRunResults()
+    {
+        Current.RecentScriptRuns.Clear();
         Save();
     }
 
@@ -129,6 +169,17 @@ public sealed class AppConfigurationService
         normalized.ColdStartEnabled = config.ColdStartEnabled;
         normalized.KeepTrayIconEnabled = config.KeepTrayIconEnabled;
         normalized.DebugLogEnabled = config.DebugLogEnabled;
+        normalized.ScriptSafetyWarningAccepted = config.ScriptSafetyWarningAccepted;
+        normalized.RuntimePaths = (config.RuntimePaths ?? new RuntimePathConfig()).Clone();
+        normalized.CustomHotkeys = config.CustomHotkeys
+            .Select(NormalizeCustomHotkey)
+            .Where(static hotkey => !string.IsNullOrWhiteSpace(hotkey.Name) || !string.IsNullOrWhiteSpace(hotkey.Hotkey))
+            .ToList();
+        normalized.RecentScriptRuns = config.RecentScriptRuns
+            .Select(static result => result.Clone())
+            .Take(MaxRecentScriptRuns)
+            .ToList();
+
         if (!normalized.StartupEnabled)
         {
             normalized.ColdStartEnabled = false;
@@ -160,6 +211,24 @@ public sealed class AppConfigurationService
             MigrateDefaultMediaKeys(normalized);
         }
 
+        return normalized;
+    }
+
+    private static CustomHotkeyConfig NormalizeCustomHotkey(CustomHotkeyConfig hotkey)
+    {
+        var normalized = hotkey.Clone();
+        if (string.IsNullOrWhiteSpace(normalized.Id))
+        {
+            normalized.Id = Guid.NewGuid().ToString("N");
+        }
+
+        normalized.Name = string.IsNullOrWhiteSpace(normalized.Name) ? "未命名脚本" : normalized.Name.Trim();
+        normalized.Hotkey = HotkeyParser.NormalizeHotkeyText(normalized.Hotkey);
+        normalized.TimeoutSeconds = Math.Clamp(normalized.TimeoutSeconds, 1, 3600);
+        normalized.ScriptType = Enum.IsDefined(normalized.ScriptType) ? normalized.ScriptType : ScriptType.WindowsShell;
+        normalized.ScriptMode = Enum.IsDefined(normalized.ScriptMode) ? normalized.ScriptMode : ScriptMode.Inline;
+        normalized.RunWindowMode = Enum.IsDefined(normalized.RunWindowMode) ? normalized.RunWindowMode : RunWindowMode.Hidden;
+        normalized.ConcurrencyPolicy = Enum.IsDefined(normalized.ConcurrencyPolicy) ? normalized.ConcurrencyPolicy : ConcurrencyPolicy.IgnoreIfRunning;
         return normalized;
     }
 
