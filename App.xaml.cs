@@ -32,11 +32,17 @@ public partial class App : Application
     /// <param name="args">Details about the launch request and process.</param>
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
-        _window = new MainWindow();
-        if (!Services.StartupRegistrationService.IsBackgroundStartupLaunch() ||
-            !Services.AppServices.Configuration.Current.ColdStartEnabled)
+        var startHidden = Services.StartupRegistrationService.IsBackgroundStartupLaunch() &&
+            Services.AppServices.Configuration.Current.ColdStartEnabled;
+
+        var mainWindow = new MainWindow(startHidden);
+        _window = mainWindow;
+        if (startHidden)
         {
-            _window.Activate();
+            mainWindow.StartHiddenInBackgroundMode();
+            return;
         }
+
+        _window.Activate();
     }
 }

@@ -20,10 +20,12 @@ public sealed partial class MainWindow : Window
     private TrayIconService? _trayIcon;
     private readonly GlobalHotKeyService _hotKeys;
     private readonly HotKeyActionService _actions;
-    private readonly ActionOverlayWindow _overlayWindow;
+    private ActionOverlayWindow? _overlayWindow;
     private bool _isExitRequested;
+    private bool _isHiddenToTray;
+    private Type _lastPageType = typeof(KeyMappingPage);
 
-    public MainWindow()
+    public MainWindow(bool startHidden = false)
     {
         InitializeComponent();
 
@@ -38,7 +40,6 @@ public sealed partial class MainWindow : Window
         AppWindow.Closing += AppWindow_Closing;
         _hotKeys = new GlobalHotKeyService(_hwnd, AppServices.Configuration);
         _actions = new HotKeyActionService(AppServices.Configuration);
-        _overlayWindow = new ActionOverlayWindow();
         ApplyTrayIconPreference();
         _hotKeys.HotKeyTriggered += HotKeys_HotKeyTriggered;
         _hotKeys.CustomHotkeyTriggered += HotKeys_CustomHotkeyTriggered;
@@ -49,7 +50,17 @@ public sealed partial class MainWindow : Window
         AppServices.Configuration.ConfigurationChanged += Configuration_ConfigurationChanged;
         RootGrid.ActualThemeChanged += RootGrid_ActualThemeChanged;
 
-        NavigateTo(typeof(KeyMappingPage));
+        if (!startHidden)
+        {
+            NavigateTo(typeof(KeyMappingPage));
+        }
+    }
+
+    public void StartHiddenInBackgroundMode()
+    {
+        _isHiddenToTray = true;
+        ShowWindow(_hwnd, SwHide);
+        ApplyBackgroundPerformanceMode();
     }
 
     private void Configuration_ConfigurationChanged(object? sender, EventArgs e)
@@ -58,6 +69,7 @@ public sealed partial class MainWindow : Window
         {
             _hotKeys.Refresh();
             ApplyTrayIconPreference();
+            ApplyBackgroundPerformanceMode();
         });
     }
 
@@ -77,7 +89,12 @@ public sealed partial class MainWindow : Window
 
     private void Actions_ScriptActionExecuted(object? sender, ScriptActionExecutedEventArgs e)
     {
-        DispatcherQueue.TryEnqueue(() => _overlayWindow.Show(e));
+        if (!e.Hotkey.ShowOverlay)
+        {
+            return;
+        }
+
+        DispatcherQueue.TryEnqueue(() => GetOverlayWindow().Show(e));
     }
     private void TitleBar_PaneToggleRequested(TitleBar sender, object args)
     {
@@ -124,17 +141,19 @@ public sealed partial class MainWindow : Window
 
     private void NavigateTo(Type pageType)
     {
-        if (NavFrame.CurrentSourcePageType != pageType)
+        if (NavFrame.CurrentSourcePageType != pageType || NavFrame.Content is null)
         {
             NavFrame.Navigate(pageType);
         }
+
+        _lastPageType = pageType;
     }
 
     private void ShowActionStatus(ActionExecutedEventArgs e)
     {
         if (e.Mapping.Action is HotKeyAction.BrightnessDown or HotKeyAction.BrightnessUp)
         {
-            _overlayWindow.Show(e);
+            GetOverlayWindow().Show(e);
         }
     }
 
@@ -200,8 +219,9 @@ public sealed partial class MainWindow : Window
             _actions.ScriptActionExecuted -= Actions_ScriptActionExecuted;
             AppServices.HotKeys = null;
             AppServices.Actions = null;
+            BackgroundPerformanceService.LeaveBackgroundMode();
             _hotKeys.Dispose();
-            _overlayWindow.Dispose();
+            _overlayWindow?.Dispose();
             _trayIcon?.Dispose();
             _trayIcon = null;
             return;
@@ -215,7 +235,10 @@ public sealed partial class MainWindow : Window
     {
         if (AppServices.Configuration.Current.KeepTrayIconEnabled)
         {
+            _isHiddenToTray = true;
+            ReleaseNavigationContent();
             ShowWindow(_hwnd, SwHide);
+            ApplyBackgroundPerformanceMode();
             return;
         }
 
@@ -224,6 +247,9 @@ public sealed partial class MainWindow : Window
 
     private void ShowSettingsWindow()
     {
+        _isHiddenToTray = false;
+        BackgroundPerformanceService.LeaveBackgroundMode();
+        EnsureNavigationContent();
         ShowWindow(_hwnd, SwShow);
         ShowWindow(_hwnd, SwRestore);
         Activate();
@@ -243,6 +269,7 @@ public sealed partial class MainWindow : Window
         _isExitRequested = true;
         _trayIcon?.Dispose();
         _trayIcon = null;
+        BackgroundPerformanceService.LeaveBackgroundMode();
         Close();
         Application.Current.Exit();
     }
@@ -257,6 +284,39 @@ public sealed partial class MainWindow : Window
 
         _trayIcon?.Dispose();
         _trayIcon = null;
+    }
+
+    private void ReleaseNavigationContent()
+    {
+        _lastPageType = NavFrame.CurrentSourcePageType ?? _lastPageType;
+        NavFrame.BackStack.Clear();
+        NavFrame.Content = null;
+    }
+
+    private void EnsureNavigationContent()
+    {
+        if (NavFrame.Content is not null)
+        {
+            return;
+        }
+
+        NavigateTo(_lastPageType);
+    }
+
+    private void ApplyBackgroundPerformanceMode()
+    {
+        if (_isHiddenToTray && AppServices.Configuration.Current.BackgroundPerformanceModeEnabled)
+        {
+            BackgroundPerformanceService.EnterBackgroundMode();
+            return;
+        }
+
+        BackgroundPerformanceService.LeaveBackgroundMode();
+    }
+
+    private ActionOverlayWindow GetOverlayWindow()
+    {
+        return _overlayWindow ??= new ActionOverlayWindow();
     }
 
     [DllImport("user32.dll")]

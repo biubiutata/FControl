@@ -42,6 +42,12 @@
                         Header="保留状态栏图标（推荐保留）"
                         Toggled="AdvancedSwitch_Toggled" />
                     <ToggleSwitch
+                        x:Name="BackgroundPerformanceModeSwitch"
+                        Header="后台性能模式"
+                        OffContent="最小化到托盘时不调整资源优先级"
+                        OnContent="最小化到托盘时降低资源占用"
+                        Toggled="AdvancedSwitch_Toggled" />
+                    <ToggleSwitch
                         x:Name="DebugLogSwitch"
                         Header="开启调试日志（默认关闭）"
                         Toggled="AdvancedSwitch_Toggled" />

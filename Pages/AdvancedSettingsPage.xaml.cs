@@ -37,6 +37,7 @@ public sealed partial class AdvancedSettingsPage : Page
         StartupSwitch.IsOn = _configurationService.Current.StartupEnabled;
         ColdStartSwitch.IsOn = _configurationService.Current.ColdStartEnabled;
         KeepTrayIconSwitch.IsOn = _configurationService.Current.KeepTrayIconEnabled;
+        BackgroundPerformanceModeSwitch.IsOn = _configurationService.Current.BackgroundPerformanceModeEnabled;
         DebugLogSwitch.IsOn = _configurationService.Current.DebugLogEnabled;
         PythonPathBox.Text = _configurationService.Current.RuntimePaths.PythonPath;
         NodePathBox.Text = _configurationService.Current.RuntimePaths.NodePath;
@@ -103,6 +104,7 @@ public sealed partial class AdvancedSettingsPage : Page
             StartupSwitch.IsOn,
             ColdStartSwitch.IsOn,
             KeepTrayIconSwitch.IsOn,
+            BackgroundPerformanceModeSwitch.IsOn,
             DebugLogSwitch.IsOn);
 
         StartupRegistrationService.SetStartupEnabled(StartupSwitch.IsOn, ColdStartSwitch.IsOn);

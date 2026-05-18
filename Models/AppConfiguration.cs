@@ -16,6 +16,7 @@ public sealed class AppConfiguration
     public bool StartupEnabled { get; set; }
     public bool ColdStartEnabled { get; set; }
     public bool KeepTrayIconEnabled { get; set; } = true;
+    public bool BackgroundPerformanceModeEnabled { get; set; } = true;
     public bool DebugLogEnabled { get; set; }
 }
 
@@ -271,7 +272,7 @@ public static class ConcurrencyPolicyMetadata
 
 public static class AppConfigurationDefaults
 {
-    public const int CurrentVersion = 3;
+    public const int CurrentVersion = 4;
 
     public static IReadOnlyList<string> FunctionKeys { get; } =
         Enumerable.Range(1, 12).Select(static number => $"F{number}").ToArray();
@@ -294,6 +295,7 @@ public static class AppConfigurationDefaults
             StartupEnabled = false,
             ColdStartEnabled = false,
             KeepTrayIconEnabled = true,
+            BackgroundPerformanceModeEnabled = true,
             DebugLogEnabled = false
         };
     }

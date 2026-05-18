@@ -96,12 +96,14 @@ public sealed class AppConfigurationService
         bool startupEnabled,
         bool coldStartEnabled,
         bool keepTrayIconEnabled,
+        bool backgroundPerformanceModeEnabled,
         bool debugLogEnabled)
     {
         Current.CompatibilityModeEnabled = compatibilityModeEnabled;
         Current.StartupEnabled = startupEnabled;
         Current.ColdStartEnabled = coldStartEnabled;
         Current.KeepTrayIconEnabled = keepTrayIconEnabled;
+        Current.BackgroundPerformanceModeEnabled = backgroundPerformanceModeEnabled;
         Current.DebugLogEnabled = debugLogEnabled;
         Current = Normalize(Current);
         Save();
@@ -168,6 +170,9 @@ public sealed class AppConfigurationService
         normalized.StartupEnabled = config.StartupEnabled;
         normalized.ColdStartEnabled = config.ColdStartEnabled;
         normalized.KeepTrayIconEnabled = config.KeepTrayIconEnabled;
+        normalized.BackgroundPerformanceModeEnabled = storedVersion < 4
+            ? normalized.BackgroundPerformanceModeEnabled
+            : config.BackgroundPerformanceModeEnabled;
         normalized.DebugLogEnabled = config.DebugLogEnabled;
         normalized.ScriptSafetyWarningAccepted = config.ScriptSafetyWarningAccepted;
         normalized.RuntimePaths = (config.RuntimePaths ?? new RuntimePathConfig()).Clone();
