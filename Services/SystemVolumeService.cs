@@ -98,7 +98,7 @@ public sealed class SystemVolumeService
 
         public static AudioEndpointVolumeHandle CreateDefaultRenderEndpoint()
         {
-            var enumerator = (IMMDeviceEnumerator)Activator.CreateInstance(Type.GetTypeFromCLSID(new Guid("BCDE0395-E52F-467C-8E3D-C4579291692E"))!)!;
+            var enumerator = (IMMDeviceEnumerator)new MMDeviceEnumerator();
             try
             {
                 enumerator.GetDefaultAudioEndpoint(EDataFlow.eRender, ERole.eMultimedia, out var device);
@@ -194,6 +194,12 @@ public sealed class SystemVolumeService
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint cInputs, INPUT[] pInputs, int cbSize);
+
+    [ComImport]
+    [Guid("BCDE0395-E52F-467C-8E3D-C4579291692E")]
+    private class MMDeviceEnumerator
+    {
+    }
 
     [ComImport]
     [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6")]

@@ -9,15 +9,15 @@
   IgnorableNamespaces="uap rescap systemai">
 
   <Identity
-    Name="AB5B7B2B-9FC2-49EF-BD7B-D595E92E51EC"
-    Publisher="CN=AppPublisher"
+    Name="FControl"
+    Publisher="CN=biubiutata"
     Version="1.0.0.0" />
 
   <mp:PhoneIdentity PhoneProductId="AB5B7B2B-9FC2-49EF-BD7B-D595E92E51EC" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
   <Properties>
     <DisplayName>FControl</DisplayName>
-    <PublisherDisplayName>AppPublisher</PublisherDisplayName>
+    <PublisherDisplayName>biubiutata</PublisherDisplayName>
     <Logo>Assets\StoreLogo.png</Logo>
   </Properties>
 

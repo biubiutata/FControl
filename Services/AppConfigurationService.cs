@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using FControl.Models;
 
 namespace FControl.Services;
@@ -7,12 +6,6 @@ namespace FControl.Services;
 public sealed class AppConfigurationService
 {
     private const int MaxRecentScriptRuns = 20;
-
-    private readonly JsonSerializerOptions _jsonOptions = new()
-    {
-        WriteIndented = true,
-        Converters = { new JsonStringEnumConverter() }
-    };
 
     public AppConfigurationService()
     {
@@ -120,7 +113,7 @@ public sealed class AppConfigurationService
         Current = Normalize(Current);
         AppServices.Log.IsEnabled = Current.DebugLogEnabled;
         Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-        File.WriteAllText(ConfigPath, JsonSerializer.Serialize(Current, _jsonOptions));
+        File.WriteAllText(ConfigPath, JsonSerializer.Serialize(Current, AppConfigurationJsonContext.Default.AppConfiguration));
         AppServices.Log.Info($"配置已保存：{ConfigPath}");
         ConfigurationChanged?.Invoke(this, EventArgs.Empty);
     }
@@ -135,7 +128,7 @@ public sealed class AppConfigurationService
         try
         {
             var json = File.ReadAllText(ConfigPath);
-            var config = JsonSerializer.Deserialize<AppConfiguration>(json, _jsonOptions);
+            var config = JsonSerializer.Deserialize(json, AppConfigurationJsonContext.Default.AppConfiguration);
             return Normalize(config);
         }
         catch
