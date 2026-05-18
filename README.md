@@ -22,7 +22,11 @@
 
 ## 截图
 
-<sup>*（运行截图待补充）*</sup>
+![F1](./image/F1.png)
+![F2](./image/F2.png)
+![F3](./image/F3.png)
+![F4](./image/F4.png)
+![F5](./image/F5.png)
 
 ## 特性
 
