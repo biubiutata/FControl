@@ -52,13 +52,13 @@
 
 ### 安装
 
-从 [Releases](https://github.com/your-repo/fcontrol/releases) 页面下载最新 MSIX 安装包，双击安装即可。
+从 [Releases](https://github.com/biubiutata/fcontrol/releases) 页面下载最新可运行程序，双击安装即可。
 
 ### 构建
 
 ```bash
 # 克隆仓库
-git clone https://github.com/your-repo/fcontrol.git
+git clone https://github.com/biubiutata/fcontrol.git
 cd fcontrol
 
 # 构建项目

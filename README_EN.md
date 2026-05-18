@@ -52,13 +52,13 @@ Many keyboards — especially compact or mechanical ones — lack dedicated medi
 
 ### Install
 
-Download the latest MSIX package from [Releases](https://github.com/your-repo/fcontrol/releases) and double-click to install.
+Download the latest executable from the [Releases](https://github.com/biubiutata/fcontrol/releases) page and double-click to install.
 
 ### Build
 
 ```bash
 # Clone the repo
-git clone https://github.com/your-repo/fcontrol.git
+git clone https://github.com/biubiutata/fcontrol.git
 cd fcontrol
 
 # Build
