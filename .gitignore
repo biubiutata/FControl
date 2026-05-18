@@ -1,3 +1,5 @@
+
+.claude/
 ## .NET / Visual Studio
 [Bb]in/
 [Oo]bj/
@@ -57,3 +59,4 @@ Generated\ Files/
 
 CLAUDE.md
 FControl.md
+
