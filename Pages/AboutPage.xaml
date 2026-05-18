@@ -11,7 +11,7 @@
         <StackPanel Padding="24,16,24,24" Spacing="20">
             <StackPanel Spacing="4">
                 <TextBlock Style="{StaticResource TitleTextBlockStyle}" Text="关于" />
-                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="F键控制（FControl）" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="FControl · F 键控制与快捷键自动化工具" />
             </StackPanel>
 
             <Border
@@ -22,9 +22,47 @@
                 CornerRadius="8">
                 <StackPanel Spacing="12">
                     <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="FControl" />
-                    <TextBlock Text="版本：0.1.0-dev（M1 应用基础框架）" />
-                    <TextBlock Text="技术栈：WinUI 3 + Windows App SDK + .NET 8" />
-                    <TextBlock Text="目标：通过 F1–F12 快速调节音量、亮度并控制媒体播放。" TextWrapping="Wrap" />
+                    <TextBlock x:Name="VersionText" Text="版本：正在读取..." />
+                    <TextBlock Text="技术栈：WinUI 3 + Windows App SDK 2.0 + .NET 8" />
+                    <TextBlock Text="定位：将 F1–F12 与自定义组合键转换为全局系统控制和本地脚本入口。" TextWrapping="Wrap" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="适用于 Windows 10 1809 及以上版本、Windows 11；支持 x86、x64、ARM64 构建。"
+                        TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="主要功能" />
+                    <TextBlock Text="• F1–F12 全局按键映射：亮度、音量、静音、媒体播放/切歌。" TextWrapping="Wrap" />
+                    <TextBlock Text="• 自定义组合快捷键：执行 Windows Shell、PowerShell、Bash、Python、Node.js 或外部程序。" TextWrapping="Wrap" />
+                    <TextBlock Text="• 系统托盘后台运行：支持开机自启、静默启动、后台性能模式。" TextWrapping="Wrap" />
+                    <TextBlock Text="• 视觉反馈与调试辅助：悬浮提示、运行日志、脚本执行记录和运行环境检测。" TextWrapping="Wrap" />
+                </StackPanel>
+            </Border>
+
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
+                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="说明" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="亮度控制依赖显示器 DDC/CI 能力，部分笔记本内屏、扩展坞、KVM 或转接线场景可能不可用。"
+                        TextWrapping="Wrap" />
+                    <TextBlock
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="若 F1–F12 被其他软件占用，可在高级设置中开启兼容模式以使用键盘钩子兜底。"
+                        TextWrapping="Wrap" />
                     <TextBlock
                         Foreground="{ThemeResource TextFillColorSecondaryBrush}"
                         Text="致谢：Microsoft Fluent Design、Fluent UI System Icons。"
