@@ -1,3 +1,5 @@
+[English](README_EN.md) | 中文版
+
 # FControl
 
 > F 键控制与快捷键自动化工具 — 将 F1–F12 与自定义组合键变成系统控制和脚本入口。

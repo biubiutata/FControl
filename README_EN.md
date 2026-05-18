@@ -1,3 +1,5 @@
+[中文版](README.md) | English
+
 # FControl
 
 > Transform F1–F12 and custom hotkeys into system controls and script launchers.
