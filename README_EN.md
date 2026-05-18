@@ -67,7 +67,7 @@ dotnet build FControl.sln
 # Run in debug mode
 dotnet run --project FControl.csproj
 
-# Publish for release (ReadyToRun + trimmed)
+# Publish for release (ReadyToRun; do not enable trimming for WinUI/XAML)
 dotnet publish -c Release -r win-x64
 ```
 

@@ -14,6 +14,7 @@
     <WindowsPackageType>None</WindowsPackageType>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <DefaultItemExcludes>$(DefaultItemExcludes);artifacts\**;publish\**;FControl-win-*\**;FControl-win-*.zip</DefaultItemExcludes>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(MrmSupportLibraryPath)' == '' and Exists('$(UserProfile)\.nuget\packages\microsoft.windows.sdk.buildtools\10.0.26100.7705\bin\10.0.26100.0\$(Platform)\mrmsupport.dll')">
@@ -67,8 +68,8 @@
   <PropertyGroup>
     <PublishReadyToRun Condition="'$(Configuration)' == 'Debug'">False</PublishReadyToRun>
     <PublishReadyToRun Condition="'$(Configuration)' != 'Debug'">True</PublishReadyToRun>
-    <PublishTrimmed Condition="'$(Configuration)' == 'Debug'">False</PublishTrimmed>
-    <PublishTrimmed Condition="'$(Configuration)' != 'Debug'">True</PublishTrimmed>
+    <!-- WinUI/XAML is not trim-safe for this app; trimming causes the published exe to exit at startup with 0xC000027B. -->
+    <PublishTrimmed>False</PublishTrimmed>
     <WindowsAppSDKSelfContained Condition="'$(Configuration)' != 'Debug'">True</WindowsAppSDKSelfContained>
   </PropertyGroup>
 </Project>

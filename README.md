@@ -67,7 +67,7 @@ dotnet build FControl.sln
 # 运行调试版
 dotnet run --project FControl.csproj
 
-# 发布 Release（ReadyToRun + 裁剪）
+# 发布 Release（ReadyToRun；WinUI/XAML 发布包不要启用裁剪）
 dotnet publish -c Release -r win-x64
 ```
 
