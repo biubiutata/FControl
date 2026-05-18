@@ -16,7 +16,9 @@ public sealed partial class ActionOverlayWindow : Window
     private const int SwShow = 5;
     private const int GwlExStyle = -20;
     private const int WsExToolWindow = 0x00000080;
+    private const int WsExLayered = 0x00080000;
     private const int WsExNoActivate = 0x08000000;
+    private const int LwaAlpha = 0x00000002;
     private const int DwmwaWindowCornerPreference = 33;
     private const int DwmwcpRound = 2;
     private const int DwmwaBorderColor = 34;
@@ -54,7 +56,7 @@ public sealed partial class ActionOverlayWindow : Window
         AppWindow.Resize(CompactOverlaySize);
 
         var extendedStyle = GetWindowLong(_hwnd, GwlExStyle);
-        _ = SetWindowLong(_hwnd, GwlExStyle, extendedStyle | WsExToolWindow | WsExNoActivate);
+        _ = SetWindowLong(_hwnd, GwlExStyle, extendedStyle | WsExToolWindow | WsExLayered | WsExNoActivate);
         ApplyChromeSettings();
         _ = ShowWindow(_hwnd, SwHide);
 
@@ -114,7 +116,8 @@ public sealed partial class ActionOverlayWindow : Window
         _timer.Stop();
         _hideGeneration++;
 
-        OverlayRoot.Opacity = GetConfiguredOpacity();
+        OverlayRoot.Opacity = 1;
+        ApplyWindowOpacity();
         ApplyThemeColors();
         _ = ShowWindow(_hwnd, SwShow);
 
@@ -286,6 +289,12 @@ public sealed partial class ActionOverlayWindow : Window
         return Math.Clamp(AppServices.Configuration.Current.OverlayOpacityPercent, 20, 100) / 100.0;
     }
 
+    private void ApplyWindowOpacity()
+    {
+        var alpha = (byte)Math.Clamp(Math.Round(GetConfiguredOpacity() * 255), 0, 255);
+        _ = SetLayeredWindowAttributes(_hwnd, 0, alpha, LwaAlpha);
+    }
+
     [System.Runtime.InteropServices.DllImport("user32.dll")]
     private static extern bool ShowWindow(nint hWnd, int nCmdShow);
 
@@ -294,6 +303,9 @@ public sealed partial class ActionOverlayWindow : Window
 
     [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
     private static extern int SetWindowLong(nint hWnd, int nIndex, int dwNewLong);
+
+    [System.Runtime.InteropServices.DllImport("user32.dll", SetLastError = true)]
+    private static extern bool SetLayeredWindowAttributes(nint hwnd, uint crKey, byte bAlpha, uint dwFlags);
 
     [System.Runtime.InteropServices.DllImport("dwmapi.dll", SetLastError = true)]
     private static extern int DwmSetWindowAttribute(nint hwnd, int dwAttribute, ref int pvAttribute, int cbAttribute);
