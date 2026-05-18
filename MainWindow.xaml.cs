@@ -17,7 +17,7 @@ public sealed partial class MainWindow : Window
     private const int SwRestore = 9;
 
     private readonly nint _hwnd;
-    private readonly TrayIconService _trayIcon;
+    private TrayIconService? _trayIcon;
     private readonly GlobalHotKeyService _hotKeys;
     private readonly HotKeyActionService _actions;
     private readonly ActionOverlayWindow _overlayWindow;
@@ -36,10 +36,10 @@ public sealed partial class MainWindow : Window
 
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
         AppWindow.Closing += AppWindow_Closing;
-        _trayIcon = new TrayIconService(_hwnd, DispatcherQueue, ShowSettingsWindow, ShowAdvancedSettingsWindow, ExitFromTray);
         _hotKeys = new GlobalHotKeyService(_hwnd, AppServices.Configuration);
         _actions = new HotKeyActionService(AppServices.Configuration);
         _overlayWindow = new ActionOverlayWindow();
+        ApplyTrayIconPreference();
         _hotKeys.HotKeyTriggered += HotKeys_HotKeyTriggered;
         _actions.ActionExecuted += Actions_ActionExecuted;
         AppServices.HotKeys = _hotKeys;
@@ -53,6 +53,7 @@ public sealed partial class MainWindow : Window
     private void Configuration_ConfigurationChanged(object? sender, EventArgs e)
     {
         _hotKeys.Refresh();
+        ApplyTrayIconPreference();
     }
 
     private void HotKeys_HotKeyTriggered(object? sender, HotKeyTriggeredEventArgs e)
@@ -183,7 +184,8 @@ public sealed partial class MainWindow : Window
             AppServices.Actions = null;
             _hotKeys.Dispose();
             _overlayWindow.Dispose();
-            _trayIcon.Dispose();
+            _trayIcon?.Dispose();
+            _trayIcon = null;
             return;
         }
 
@@ -221,9 +223,22 @@ public sealed partial class MainWindow : Window
     private void ExitFromTray()
     {
         _isExitRequested = true;
-        _trayIcon.Dispose();
+        _trayIcon?.Dispose();
+        _trayIcon = null;
         Close();
         Application.Current.Exit();
+    }
+
+    private void ApplyTrayIconPreference()
+    {
+        if (AppServices.Configuration.Current.KeepTrayIconEnabled)
+        {
+            _trayIcon ??= new TrayIconService(_hwnd, DispatcherQueue, ShowSettingsWindow, ShowAdvancedSettingsWindow, ExitFromTray);
+            return;
+        }
+
+        _trayIcon?.Dispose();
+        _trayIcon = null;
     }
 
     [DllImport("user32.dll")]

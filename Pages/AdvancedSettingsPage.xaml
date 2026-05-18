@@ -33,7 +33,9 @@
                         Toggled="AdvancedSwitch_Toggled" />
                     <ToggleSwitch
                         x:Name="ColdStartSwitch"
-                        Header="冷启动"
+                        Header="静默自启"
+                        OffContent="开机后显示设置窗口"
+                        OnContent="开机后仅后台运行"
                         Toggled="AdvancedSwitch_Toggled" />
                     <ToggleSwitch
                         x:Name="KeepTrayIconSwitch"

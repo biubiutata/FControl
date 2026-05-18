@@ -129,6 +129,15 @@ public sealed class AppConfigurationService
         normalized.ColdStartEnabled = config.ColdStartEnabled;
         normalized.KeepTrayIconEnabled = config.KeepTrayIconEnabled;
         normalized.DebugLogEnabled = config.DebugLogEnabled;
+        if (!normalized.StartupEnabled)
+        {
+            normalized.ColdStartEnabled = false;
+        }
+
+        if (normalized.ColdStartEnabled)
+        {
+            normalized.KeepTrayIconEnabled = true;
+        }
 
         foreach (var defaultMapping in normalized.KeyMappings)
         {

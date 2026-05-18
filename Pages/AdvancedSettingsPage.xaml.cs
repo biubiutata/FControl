@@ -35,6 +35,7 @@ public sealed partial class AdvancedSettingsPage : Page
         ColdStartSwitch.IsOn = _configurationService.Current.ColdStartEnabled;
         KeepTrayIconSwitch.IsOn = _configurationService.Current.KeepTrayIconEnabled;
         DebugLogSwitch.IsOn = _configurationService.Current.DebugLogEnabled;
+        UpdateStartupOptionState();
         _isLoading = false;
     }
 
@@ -81,6 +82,18 @@ public sealed partial class AdvancedSettingsPage : Page
             return;
         }
 
+        if (!StartupSwitch.IsOn)
+        {
+            ColdStartSwitch.IsOn = false;
+        }
+
+        if (ColdStartSwitch.IsOn)
+        {
+            KeepTrayIconSwitch.IsOn = true;
+        }
+
+        UpdateStartupOptionState();
+
         _configurationService.SetAdvancedSettings(
             CompatibilityModeSwitch.IsOn,
             StartupSwitch.IsOn,
@@ -88,7 +101,13 @@ public sealed partial class AdvancedSettingsPage : Page
             KeepTrayIconSwitch.IsOn,
             DebugLogSwitch.IsOn);
 
-        StartupRegistrationService.SetStartupEnabled(StartupSwitch.IsOn);
+        StartupRegistrationService.SetStartupEnabled(StartupSwitch.IsOn, ColdStartSwitch.IsOn);
+    }
+
+    private void UpdateStartupOptionState()
+    {
+        ColdStartSwitch.IsEnabled = StartupSwitch.IsOn;
+        KeepTrayIconSwitch.IsEnabled = !ColdStartSwitch.IsOn;
     }
 
     private void ShowInfo(string message)

@@ -33,6 +33,10 @@ public partial class App : Application
     protected override void OnLaunched(Microsoft.UI.Xaml.LaunchActivatedEventArgs args)
     {
         _window = new MainWindow();
-        _window.Activate();
+        if (!Services.StartupRegistrationService.IsBackgroundStartupLaunch() ||
+            !Services.AppServices.Configuration.Current.ColdStartEnabled)
+        {
+            _window.Activate();
+        }
     }
 }
