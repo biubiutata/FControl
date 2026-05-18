@@ -25,6 +25,15 @@ public sealed class MediaControlService
     {
         try
         {
+            if (action is HotKeyAction.MediaPlayPause or HotKeyAction.MediaPrevious or HotKeyAction.MediaNext or HotKeyAction.MediaStop)
+            {
+                var mediaKeyResult = TryExecuteWithLegacyMediaCommand(action);
+                if (mediaKeyResult.Succeeded)
+                {
+                    return mediaKeyResult;
+                }
+            }
+
             var gsmtcResult = await TryExecuteWithSystemMediaTransportControlsAsync(action, seekSeconds);
             if (gsmtcResult.Succeeded)
             {
@@ -34,7 +43,7 @@ public sealed class MediaControlService
             var fallbackResult = TryExecuteWithLegacyMediaCommand(action);
             if (fallbackResult.Succeeded)
             {
-                return MediaControlResult.Success(fallbackResult.Message);
+                return fallbackResult;
             }
 
             return MediaControlResult.Failure($"{gsmtcResult.Message}；通用媒体键兜底也失败：{fallbackResult.Message}");
@@ -48,14 +57,43 @@ public sealed class MediaControlService
     private static async Task<MediaControlResult> TryExecuteWithSystemMediaTransportControlsAsync(HotKeyAction action, int seekSeconds)
     {
         var manager = await GlobalSystemMediaTransportControlsSessionManager.RequestAsync();
-        var session = manager.GetCurrentSession();
-        if (session is null)
+        var sessions = new List<GlobalSystemMediaTransportControlsSession>();
+        var currentSession = manager.GetCurrentSession();
+        if (currentSession is not null)
+        {
+            sessions.Add(currentSession);
+        }
+
+        sessions.AddRange(manager.GetSessions()
+            .Where(session => currentSession is null || !IsSameSession(session, currentSession))
+            .OrderByDescending(static session => session.GetPlaybackInfo().PlaybackStatus == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing));
+
+        if (sessions.Count == 0)
         {
             return MediaControlResult.Failure("未发现系统媒体会话");
         }
 
-        var playbackInfo = session.GetPlaybackInfo();
-        var controls = playbackInfo.Controls;
+        var failures = new List<string>();
+        foreach (var session in sessions)
+        {
+            var result = await TryExecuteWithSessionAsync(session, action, seekSeconds);
+            if (result.Succeeded)
+            {
+                return result;
+            }
+
+            failures.Add($"{GetSessionName(session)}：{result.Message}");
+        }
+
+        return MediaControlResult.Failure(string.Join("；", failures));
+    }
+
+    private static async Task<MediaControlResult> TryExecuteWithSessionAsync(
+        GlobalSystemMediaTransportControlsSession session,
+        HotKeyAction action,
+        int seekSeconds)
+    {
+        var controls = session.GetPlaybackInfo().Controls;
 
         return action switch
         {
@@ -69,24 +107,41 @@ public sealed class MediaControlService
         };
     }
 
+    private static bool IsSameSession(
+        GlobalSystemMediaTransportControlsSession left,
+        GlobalSystemMediaTransportControlsSession right)
+    {
+        return string.Equals(left.SourceAppUserModelId, right.SourceAppUserModelId, StringComparison.OrdinalIgnoreCase);
+    }
+
+    private static string GetSessionName(GlobalSystemMediaTransportControlsSession session)
+    {
+        return string.IsNullOrWhiteSpace(session.SourceAppUserModelId)
+            ? "未知媒体会话"
+            : session.SourceAppUserModelId;
+    }
+
     private static async Task<MediaControlResult> TryTogglePlayPauseAsync(
         GlobalSystemMediaTransportControlsSession session,
         GlobalSystemMediaTransportControlsSessionPlaybackControls controls)
     {
-        if (controls.IsPlayPauseToggleEnabled)
-        {
-            return await TryControlAsync(true, session.TryTogglePlayPauseAsync, "当前媒体会话不支持播放/暂停切换");
-        }
-
         var status = session.GetPlaybackInfo().PlaybackStatus;
         if (status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing && controls.IsPauseEnabled)
         {
-            return await TryControlAsync(true, session.TryPauseAsync, "当前媒体会话不支持暂停");
+            return await TryControlAsync(true, session.TryPauseAsync, "当前媒体会话不支持暂停", MediaPlaybackToggleState.Paused);
         }
 
         if (controls.IsPlayEnabled)
         {
-            return await TryControlAsync(true, session.TryPlayAsync, "当前媒体会话不支持播放");
+            return await TryControlAsync(true, session.TryPlayAsync, "当前媒体会话不支持播放", MediaPlaybackToggleState.Playing);
+        }
+
+        if (controls.IsPlayPauseToggleEnabled)
+        {
+            var toggledToState = status == GlobalSystemMediaTransportControlsSessionPlaybackStatus.Playing
+                ? MediaPlaybackToggleState.Paused
+                : MediaPlaybackToggleState.Playing;
+            return await TryControlAsync(true, session.TryTogglePlayPauseAsync, "当前媒体会话不支持播放/暂停切换", toggledToState);
         }
 
         return MediaControlResult.Failure("当前媒体会话不支持播放/暂停");
@@ -95,7 +150,8 @@ public sealed class MediaControlService
     private static async Task<MediaControlResult> TryControlAsync(
         bool isEnabled,
         Func<Windows.Foundation.IAsyncOperation<bool>> operation,
-        string unsupportedMessage)
+        string unsupportedMessage,
+        MediaPlaybackToggleState playbackToggleState = MediaPlaybackToggleState.Unknown)
     {
         if (!isEnabled)
         {
@@ -104,7 +160,7 @@ public sealed class MediaControlService
 
         var succeeded = await operation();
         return succeeded
-            ? MediaControlResult.Success("系统媒体会话控制成功")
+            ? MediaControlResult.Success("系统媒体会话控制成功", playbackToggleState)
             : MediaControlResult.Failure(unsupportedMessage);
     }
 
@@ -158,10 +214,7 @@ public sealed class MediaControlService
             _ => (ushort)0
         };
 
-        if (virtualKey != 0 && TrySendMediaKey(virtualKey))
-        {
-            return MediaControlResult.Success("未发现可用系统媒体会话，已发送通用系统媒体键");
-        }
+        var mediaKeySent = virtualKey != 0 && TrySendMediaKey(virtualKey);
 
         var appCommand = action switch
         {
@@ -174,14 +227,17 @@ public sealed class MediaControlService
             _ => 0
         };
 
-        if (appCommand == 0)
+        var appCommandSent = appCommand != 0 && TrySendAppCommand(appCommand);
+        if (mediaKeySent || appCommandSent)
         {
-            return MediaControlResult.Failure("没有可用的通用媒体命令");
+            return MediaControlResult.Success(
+                "已发送通用系统媒体键",
+                action == HotKeyAction.MediaPlayPause ? MediaPlaybackToggleState.Toggled : MediaPlaybackToggleState.Unknown);
         }
 
-        return TrySendAppCommand(appCommand)
-            ? MediaControlResult.Success("未发现可用系统媒体会话，已发送 WM_APPCOMMAND 通用媒体命令")
-            : MediaControlResult.Failure($"WM_APPCOMMAND 发送失败（Win32 错误 {Marshal.GetLastWin32Error()}）");
+        return appCommand == 0
+            ? MediaControlResult.Failure("没有可用的通用媒体命令")
+            : MediaControlResult.Failure($"通用媒体命令发送失败（Win32 错误 {Marshal.GetLastWin32Error()}）");
     }
 
     private static bool TrySendMediaKey(ushort virtualKey)
@@ -214,6 +270,20 @@ public sealed class MediaControlService
     private static bool TrySendAppCommand(int appCommand)
     {
         var lParam = (nint)((appCommand << 16) | FAppCommandKey);
+        var foregroundWindow = GetForegroundWindow();
+        if (foregroundWindow != 0 &&
+            SendMessageTimeout(
+                foregroundWindow,
+                WmAppCommand,
+                0,
+                lParam,
+                SendMessageTimeoutFlags.SMTO_ABORTIFHUNG,
+                100,
+                out _) != 0)
+        {
+            return true;
+        }
+
         return SendMessageTimeout(
             HWND_BROADCAST,
             WmAppCommand,
@@ -237,7 +307,24 @@ public sealed class MediaControlService
     private struct INPUTUNION
     {
         [FieldOffset(0)]
+        public MOUSEINPUT mi;
+
+        [FieldOffset(0)]
         public KEYBDINPUT ki;
+
+        [FieldOffset(0)]
+        public HARDWAREINPUT hi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public nint dwExtraInfo;
     }
 
     [StructLayout(LayoutKind.Sequential)]
@@ -250,6 +337,14 @@ public sealed class MediaControlService
         public nint dwExtraInfo;
     }
 
+    [StructLayout(LayoutKind.Sequential)]
+    private struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
+    }
+
     [Flags]
     private enum SendMessageTimeoutFlags : uint
     {
@@ -258,6 +353,9 @@ public sealed class MediaControlService
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint SendInput(uint cInputs, INPUT[] pInputs, int cbSize);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern nint GetForegroundWindow();
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern nint SendMessageTimeout(
@@ -270,11 +368,19 @@ public sealed class MediaControlService
         out nint lpdwResult);
 }
 
-public sealed record MediaControlResult(bool Succeeded, string? Message)
+public enum MediaPlaybackToggleState
 {
-    public static MediaControlResult Success(string? message = null)
+    Unknown,
+    Playing,
+    Paused,
+    Toggled
+}
+
+public sealed record MediaControlResult(bool Succeeded, string? Message, MediaPlaybackToggleState PlaybackToggleState = MediaPlaybackToggleState.Unknown)
+{
+    public static MediaControlResult Success(string? message = null, MediaPlaybackToggleState playbackToggleState = MediaPlaybackToggleState.Unknown)
     {
-        return new MediaControlResult(true, message);
+        return new MediaControlResult(true, message, playbackToggleState);
     }
 
     public static MediaControlResult Failure(string message)

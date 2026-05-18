@@ -14,7 +14,9 @@ public sealed class GlobalHotKeyService : IDisposable
     private const int VirtualKeyF12 = 0x7B;
     private const int WhKeyboardLl = 13;
     private const int WmKeyDown = 0x0100;
+    private const int WmKeyUp = 0x0101;
     private const int WmSysKeyDown = 0x0104;
+    private const int WmSysKeyUp = 0x0105;
     private const int LlkhfInjected = 0x00000010;
 
     private readonly nint _hwnd;
@@ -120,7 +122,7 @@ public sealed class GlobalHotKeyService : IDisposable
 
     private nint LowLevelKeyboardHookProc(int nCode, nint wParam, nint lParam)
     {
-        if (nCode >= 0 && (wParam == WmKeyDown || wParam == WmSysKeyDown))
+        if (nCode >= 0 && (wParam == WmKeyDown || wParam == WmSysKeyDown || wParam == WmKeyUp || wParam == WmSysKeyUp))
         {
             var hook = Marshal.PtrToStructure<KBDLLHOOKSTRUCT>(lParam);
             var virtualKey = unchecked((int)hook.vkCode);
@@ -128,7 +130,12 @@ public sealed class GlobalHotKeyService : IDisposable
                 (hook.flags & LlkhfInjected) == 0 &&
                 _hookMappings.TryGetValue(virtualKey, out var mapping))
             {
-                Trigger(mapping, "WH_KEYBOARD_LL fallback");
+                if (wParam == WmKeyDown || wParam == WmSysKeyDown)
+                {
+                    Trigger(mapping, "WH_KEYBOARD_LL fallback");
+                }
+
+                return 1;
             }
         }
 

@@ -55,12 +55,14 @@ public sealed class AppConfigurationService
         bool compatibilityModeEnabled,
         bool startupEnabled,
         bool coldStartEnabled,
-        bool keepTrayIconEnabled)
+        bool keepTrayIconEnabled,
+        bool debugLogEnabled)
     {
         Current.CompatibilityModeEnabled = compatibilityModeEnabled;
         Current.StartupEnabled = startupEnabled;
         Current.ColdStartEnabled = coldStartEnabled;
         Current.KeepTrayIconEnabled = keepTrayIconEnabled;
+        Current.DebugLogEnabled = debugLogEnabled;
         Current = Normalize(Current);
         Save();
     }
@@ -74,6 +76,7 @@ public sealed class AppConfigurationService
     public void Save()
     {
         Current = Normalize(Current);
+        AppServices.Log.IsEnabled = Current.DebugLogEnabled;
         Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
         File.WriteAllText(ConfigPath, JsonSerializer.Serialize(Current, _jsonOptions));
         AppServices.Log.Info($"配置已保存：{ConfigPath}");
@@ -107,7 +110,8 @@ public sealed class AppConfigurationService
             return normalized;
         }
 
-        normalized.Version = config.Version <= 0 ? 1 : config.Version;
+        var storedVersion = config.Version <= 0 ? 1 : config.Version;
+        normalized.Version = AppConfigurationDefaults.CurrentVersion;
         normalized.OverlayDurationSeconds = config.OverlayDurationSeconds <= 0
             ? normalized.OverlayDurationSeconds
             : Math.Clamp(Math.Round(config.OverlayDurationSeconds * 2, MidpointRounding.AwayFromZero) / 2, 1, 10);
@@ -124,6 +128,7 @@ public sealed class AppConfigurationService
         normalized.StartupEnabled = config.StartupEnabled;
         normalized.ColdStartEnabled = config.ColdStartEnabled;
         normalized.KeepTrayIconEnabled = config.KeepTrayIconEnabled;
+        normalized.DebugLogEnabled = config.DebugLogEnabled;
 
         foreach (var defaultMapping in normalized.KeyMappings)
         {
@@ -141,6 +146,26 @@ public sealed class AppConfigurationService
             defaultMapping.SeekSeconds = Math.Clamp(storedMapping.SeekSeconds, 1, 60);
         }
 
+        if (storedVersion < 2)
+        {
+            MigrateDefaultMediaKeys(normalized);
+        }
+
         return normalized;
+    }
+
+    private static void MigrateDefaultMediaKeys(AppConfiguration config)
+    {
+        var f7 = config.KeyMappings.FirstOrDefault(static mapping => mapping.Key == "F7");
+        if (f7 is { Action: HotKeyAction.MediaRewind, SeekSeconds: 2 })
+        {
+            f7.Action = HotKeyAction.MediaPrevious;
+        }
+
+        var f9 = config.KeyMappings.FirstOrDefault(static mapping => mapping.Key == "F9");
+        if (f9 is { Action: HotKeyAction.MediaFastForward, SeekSeconds: 2 })
+        {
+            f9.Action = HotKeyAction.MediaNext;
+        }
     }
 }

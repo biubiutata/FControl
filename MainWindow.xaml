@@ -66,14 +66,5 @@
             </NavigationView.MenuItems>
             <Frame x:Name="NavFrame" />
         </NavigationView>
-
-        <Rectangle
-            x:Name="PaneResizeGrip"
-            Grid.Row="1"
-            Width="6"
-            HorizontalAlignment="Left"
-            Fill="Transparent"
-            ManipulationDelta="PaneResizeGrip_ManipulationDelta"
-            ManipulationMode="TranslateX" />
     </Grid>
 </Window>

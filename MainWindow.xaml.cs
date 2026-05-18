@@ -1,11 +1,12 @@
 using System.Runtime.InteropServices;
+using FControl.Models;
 using FControl.Pages;
 using FControl.Services;
 using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
-using Microsoft.UI.Xaml.Input;
 using Windows.Graphics;
+using Windows.UI;
 
 namespace FControl;
 
@@ -30,6 +31,7 @@ public sealed partial class MainWindow : Window
         SetTitleBar(AppTitleBar);
         AppWindow.TitleBar.PreferredHeightOption = TitleBarHeightOption.Tall;
         AppWindow.SetIcon("Assets/AppIcon.ico");
+        ApplyTitleBarColors();
         ResizeMainWindowToWorkArea();
 
         _hwnd = WinRT.Interop.WindowNative.GetWindowHandle(this);
@@ -43,6 +45,7 @@ public sealed partial class MainWindow : Window
         AppServices.HotKeys = _hotKeys;
         AppServices.Actions = _actions;
         AppServices.Configuration.ConfigurationChanged += Configuration_ConfigurationChanged;
+        RootGrid.ActualThemeChanged += RootGrid_ActualThemeChanged;
 
         NavigateTo(typeof(KeyMappingPage));
     }
@@ -100,7 +103,6 @@ public sealed partial class MainWindow : Window
                 throw new InvalidOperationException($"Unknown navigation item tag: {item.Tag}");
         }
 
-        UpdatePaneResizeGrip();
     }
 
     private void NavigateTo(Type pageType)
@@ -113,18 +115,10 @@ public sealed partial class MainWindow : Window
 
     private void ShowActionStatus(ActionExecutedEventArgs e)
     {
-        _overlayWindow.Show(e);
-    }
-
-    private void PaneResizeGrip_ManipulationDelta(object sender, ManipulationDeltaRoutedEventArgs e)
-    {
-        NavView.OpenPaneLength = Math.Clamp(NavView.OpenPaneLength + e.Delta.Translation.X, 180, 420);
-        UpdatePaneResizeGrip();
-    }
-
-    private void UpdatePaneResizeGrip()
-    {
-        PaneResizeGrip.Margin = new Thickness(NavView.OpenPaneLength - PaneResizeGrip.Width / 2, 0, 0, 0);
+        if (e.Mapping.Action is HotKeyAction.BrightnessDown or HotKeyAction.BrightnessUp)
+        {
+            _overlayWindow.Show(e);
+        }
     }
 
     private void ResizeMainWindowToWorkArea()
@@ -136,7 +130,45 @@ public sealed partial class MainWindow : Window
         var x = workArea.X + (workArea.Width - width) / 2;
         var y = workArea.Y + (workArea.Height - height) / 2;
         AppWindow.MoveAndResize(new RectInt32(x, y, width, height));
-        UpdatePaneResizeGrip();
+    }
+
+    private void RootGrid_ActualThemeChanged(FrameworkElement sender, object args)
+    {
+        ApplyTitleBarColors();
+    }
+
+    private void ApplyTitleBarColors()
+    {
+        var titleBar = AppWindow.TitleBar;
+        if (RootGrid.ActualTheme == ElementTheme.Dark)
+        {
+            titleBar.ForegroundColor = Color.FromArgb(255, 255, 255, 255);
+            titleBar.ButtonForegroundColor = Color.FromArgb(255, 255, 255, 255);
+            titleBar.ButtonHoverForegroundColor = Color.FromArgb(255, 255, 255, 255);
+            titleBar.ButtonPressedForegroundColor = Color.FromArgb(255, 255, 255, 255);
+            titleBar.ButtonBackgroundColor = Color.FromArgb(0, 0, 0, 0);
+            titleBar.ButtonHoverBackgroundColor = Color.FromArgb(255, 51, 51, 51);
+            titleBar.ButtonPressedBackgroundColor = Color.FromArgb(255, 64, 64, 64);
+            titleBar.BackgroundColor = Color.FromArgb(0, 0, 0, 0);
+            titleBar.InactiveBackgroundColor = Color.FromArgb(0, 0, 0, 0);
+            titleBar.InactiveForegroundColor = Color.FromArgb(255, 180, 180, 180);
+            titleBar.ButtonInactiveBackgroundColor = Color.FromArgb(0, 0, 0, 0);
+            titleBar.ButtonInactiveForegroundColor = Color.FromArgb(255, 180, 180, 180);
+            return;
+        }
+
+        titleBar.ForegroundColor = Color.FromArgb(255, 0, 0, 0);
+        titleBar.ButtonForegroundColor = Color.FromArgb(255, 0, 0, 0);
+        titleBar.ButtonHoverForegroundColor = Color.FromArgb(255, 0, 0, 0);
+        titleBar.ButtonPressedForegroundColor = Color.FromArgb(255, 0, 0, 0);
+        titleBar.ButtonBackgroundColor = Color.FromArgb(0, 0, 0, 0);
+        titleBar.ButtonHoverBackgroundColor = Color.FromArgb(255, 230, 230, 230);
+        titleBar.ButtonPressedBackgroundColor = Color.FromArgb(255, 215, 215, 215);
+        titleBar.BackgroundColor = Color.FromArgb(0, 0, 0, 0);
+        titleBar.InactiveBackgroundColor = Color.FromArgb(0, 0, 0, 0);
+        titleBar.InactiveForegroundColor = Color.FromArgb(255, 90, 90, 90);
+        titleBar.ButtonInactiveBackgroundColor = Color.FromArgb(0, 0, 0, 0);
+        titleBar.ButtonInactiveForegroundColor = Color.FromArgb(255, 90, 90, 90);
     }
 
     private void AppWindow_Closing(AppWindow sender, AppWindowClosingEventArgs args)
@@ -144,6 +176,7 @@ public sealed partial class MainWindow : Window
         if (_isExitRequested)
         {
             AppServices.Configuration.ConfigurationChanged -= Configuration_ConfigurationChanged;
+            RootGrid.ActualThemeChanged -= RootGrid_ActualThemeChanged;
             _hotKeys.HotKeyTriggered -= HotKeys_HotKeyTriggered;
             _actions.ActionExecuted -= Actions_ActionExecuted;
             AppServices.HotKeys = null;

@@ -14,6 +14,7 @@ internal sealed class TrayIconService : IDisposable
     private const uint NotifyIconVersion4 = 4;
     private const uint WmApp = 0x8000;
     private const uint WmTrayIcon = WmApp + 1;
+    private const int WmNull = 0x0000;
     private const int WmContextMenu = 0x007B;
     private const int WmLButtonUp = 0x0202;
     private const int WmLButtonDblClk = 0x0203;
@@ -120,7 +121,7 @@ internal sealed class TrayIconService : IDisposable
     {
         if (msg == WmTrayIcon)
         {
-            var mouseMessage = unchecked((int)lParam);
+            var mouseMessage = GetLowWord(lParam);
             if (mouseMessage is WmLButtonUp or WmLButtonDblClk or NinSelect or NinKeySelect)
             {
                 _dispatcherQueue.TryEnqueue(() => _openWindow());
@@ -158,6 +159,7 @@ internal sealed class TrayIconService : IDisposable
 
             _ = SetForegroundWindow(_hwnd);
             var command = TrackPopupMenu(menu, TpmReturNcmd | TpmRightButton, point.X, point.Y, 0, _hwnd, 0);
+            _ = PostMessage(_hwnd, WmNull, 0, 0);
             switch (command)
             {
                 case AdvancedSettingsCommand:
@@ -172,6 +174,11 @@ internal sealed class TrayIconService : IDisposable
         {
             _ = DestroyMenu(menu);
         }
+    }
+
+    private static int GetLowWord(nint value)
+    {
+        return unchecked((int)((long)value & 0xFFFF));
     }
 
     [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Unicode)]
@@ -250,4 +257,7 @@ internal sealed class TrayIconService : IDisposable
 
     [DllImport("user32.dll", SetLastError = true)]
     private static extern uint TrackPopupMenu(nint hMenu, uint uFlags, int x, int y, int nReserved, nint hWnd, nint prcRect);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern bool PostMessage(nint hWnd, int msg, nint wParam, nint lParam);
 }

@@ -5,20 +5,49 @@ namespace FControl.Services;
 public sealed class SystemVolumeService
 {
     private const uint ClsctxInprocServer = 0x1;
+    private const ushort VkVolumeMute = 0xAD;
+    private const ushort VkVolumeDown = 0xAE;
+    private const ushort VkVolumeUp = 0xAF;
+    private const uint InputKeyboard = 1;
+    private const uint KeyEventFKeyUp = 0x0002;
 
-    public VolumeControlResult ChangeVolumeByPercent(int deltaPercent)
+    public VolumeControlResult SendVolumeUpKey()
+    {
+        return SendVolumeKey(VkVolumeUp, unmuteFirst: true);
+    }
+
+    public VolumeControlResult SendVolumeDownKey()
+    {
+        return SendVolumeKey(VkVolumeDown, unmuteFirst: true);
+    }
+
+    public VolumeControlResult SendMuteKey()
+    {
+        return SendVolumeKey(VkVolumeMute, unmuteFirst: false);
+    }
+
+    private static VolumeControlResult SendVolumeKey(ushort virtualKey, bool unmuteFirst)
     {
         try
         {
             using var endpoint = AudioEndpointVolumeHandle.CreateDefaultRenderEndpoint();
-            endpoint.Value.GetMasterVolumeLevelScalar(out var currentVolume);
+            if (unmuteFirst)
+            {
+                endpoint.Value.GetMute(out var muted);
+                if (muted)
+                {
+                    endpoint.Value.SetMute(false, Guid.Empty);
+                }
+            }
 
-            var nextVolume = Math.Clamp(currentVolume + deltaPercent / 100f, 0f, 1f);
-            endpoint.Value.SetMasterVolumeLevelScalar(nextVolume, Guid.Empty);
-            endpoint.Value.GetMasterVolumeLevelScalar(out var actualVolume);
-            endpoint.Value.GetMute(out var muted);
+            if (!TrySendKey(virtualKey))
+            {
+                return VolumeControlResult.Failure($"SendInput 失败（Win32 错误 {Marshal.GetLastWin32Error()}）。");
+            }
 
-            return VolumeControlResult.Success(actualVolume, muted);
+            endpoint.Value.GetMasterVolumeLevelScalar(out var volume);
+            endpoint.Value.GetMute(out var actualMuted);
+            return VolumeControlResult.Success(volume, actualMuted);
         }
         catch (Exception ex)
         {
@@ -26,22 +55,31 @@ public sealed class SystemVolumeService
         }
     }
 
-    public VolumeControlResult ToggleMute()
+    private static bool TrySendKey(ushort virtualKey)
     {
-        try
+        var inputs = new[]
         {
-            using var endpoint = AudioEndpointVolumeHandle.CreateDefaultRenderEndpoint();
-            endpoint.Value.GetMute(out var muted);
-            endpoint.Value.SetMute(!muted, Guid.Empty);
-            endpoint.Value.GetMasterVolumeLevelScalar(out var volume);
-            endpoint.Value.GetMute(out var actualMuted);
+            CreateKeyboardInput(virtualKey, 0),
+            CreateKeyboardInput(virtualKey, KeyEventFKeyUp)
+        };
 
-            return VolumeControlResult.Success(volume, actualMuted);
-        }
-        catch (Exception ex)
+        return SendInput((uint)inputs.Length, inputs, Marshal.SizeOf<INPUT>()) == inputs.Length;
+    }
+
+    private static INPUT CreateKeyboardInput(ushort virtualKey, uint flags)
+    {
+        return new INPUT
         {
-            return VolumeControlResult.Failure(ex.Message);
-        }
+            type = InputKeyboard,
+            Anonymous = new INPUTUNION
+            {
+                ki = new KEYBDINPUT
+                {
+                    wVk = virtualKey,
+                    dwFlags = flags
+                }
+            }
+        };
     }
 
     private sealed class AudioEndpointVolumeHandle : IDisposable
@@ -104,6 +142,58 @@ public sealed class SystemVolumeService
         eMultimedia,
         eCommunications
     }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct INPUT
+    {
+        public uint type;
+        public INPUTUNION Anonymous;
+    }
+
+    [StructLayout(LayoutKind.Explicit)]
+    private struct INPUTUNION
+    {
+        [FieldOffset(0)]
+        public MOUSEINPUT mi;
+
+        [FieldOffset(0)]
+        public KEYBDINPUT ki;
+
+        [FieldOffset(0)]
+        public HARDWAREINPUT hi;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct MOUSEINPUT
+    {
+        public int dx;
+        public int dy;
+        public uint mouseData;
+        public uint dwFlags;
+        public uint time;
+        public nint dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct KEYBDINPUT
+    {
+        public ushort wVk;
+        public ushort wScan;
+        public uint dwFlags;
+        public uint time;
+        public nint dwExtraInfo;
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    private struct HARDWAREINPUT
+    {
+        public uint uMsg;
+        public ushort wParamL;
+        public ushort wParamH;
+    }
+
+    [DllImport("user32.dll", SetLastError = true)]
+    private static extern uint SendInput(uint cInputs, INPUT[] pInputs, int cbSize);
 
     [ComImport]
     [Guid("A95664D2-9614-4F35-A746-DE8DB63617E6")]

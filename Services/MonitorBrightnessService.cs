@@ -109,6 +109,13 @@ public sealed class MonitorBrightnessService
         }
     }
 
+    public int? GetPrimaryBrightnessPercent()
+    {
+        return EnumerateMonitors()
+            .FirstOrDefault(static monitor => monitor.IsBrightnessSupported && monitor.BrightnessPercent is not null)
+            ?.BrightnessPercent;
+    }
+
     private static List<PhysicalMonitorHandle> EnumeratePhysicalMonitors()
     {
         var monitors = new List<PhysicalMonitorHandle>();

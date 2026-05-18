@@ -9,16 +9,27 @@ public sealed class HotKeyActionService
     private readonly SystemVolumeService _volumeService = new();
     private readonly MediaControlService _mediaService = new();
     private readonly MonitorBrightnessService _brightnessService = new();
+    private readonly SemaphoreSlim _brightnessGate = new(1, 1);
+    private readonly object _brightnessStateGate = new();
+    private int? _lastBrightnessPercent;
+    private long _brightnessRequestVersion;
 
     public HotKeyActionService(AppConfigurationService configurationService)
     {
         _configurationService = configurationService;
+        _ = InitializeBrightnessCacheAsync();
     }
 
     public event EventHandler<ActionExecutedEventArgs>? ActionExecuted;
 
     public async void Execute(KeyMappingConfig mapping)
     {
+        if (mapping.Action is HotKeyAction.BrightnessDown or HotKeyAction.BrightnessUp)
+        {
+            await ExecuteBrightnessMappingAsync(mapping);
+            return;
+        }
+
         try
         {
             AppServices.Log.Info($"执行动作：{mapping.Key} -> {mapping.Action}");
@@ -39,11 +50,9 @@ public sealed class HotKeyActionService
         return mapping.Action switch
         {
             HotKeyAction.Disabled => ControlActionResult.Success("已禁用"),
-            HotKeyAction.VolumeDown => ExecuteVolume(-_configurationService.Current.VolumeStepPercent),
-            HotKeyAction.VolumeUp => ExecuteVolume(_configurationService.Current.VolumeStepPercent),
-            HotKeyAction.MuteToggle => ExecuteMuteToggle(),
-            HotKeyAction.BrightnessDown => ExecuteBrightness(-_configurationService.Current.BrightnessStepPercent),
-            HotKeyAction.BrightnessUp => ExecuteBrightness(_configurationService.Current.BrightnessStepPercent),
+            HotKeyAction.VolumeDown => ExecuteSystemVolumeKey(HotKeyAction.VolumeDown),
+            HotKeyAction.VolumeUp => ExecuteSystemVolumeKey(HotKeyAction.VolumeUp),
+            HotKeyAction.MuteToggle => ExecuteSystemVolumeKey(HotKeyAction.MuteToggle),
             HotKeyAction.MediaPlayPause or
                 HotKeyAction.MediaPrevious or
                 HotKeyAction.MediaNext or
@@ -54,26 +63,111 @@ public sealed class HotKeyActionService
         };
     }
 
-    private ControlActionResult ExecuteVolume(int deltaPercent)
+    private async Task InitializeBrightnessCacheAsync()
     {
-        var result = _volumeService.ChangeVolumeByPercent(deltaPercent);
-        return result.Succeeded
-            ? ControlActionResult.Success(
-                result.IsMuted ? $"静音，音量 {result.VolumePercent}%" : $"音量 {result.VolumePercent}%",
-                result.VolumePercent,
-                result.IsMuted)
-            : ControlActionResult.Failure($"音量控制失败：{result.Message}");
+        try
+        {
+            var brightnessPercent = await Task.Run(_brightnessService.GetPrimaryBrightnessPercent);
+            if (brightnessPercent is null)
+            {
+                return;
+            }
+
+            lock (_brightnessStateGate)
+            {
+                _lastBrightnessPercent ??= brightnessPercent;
+            }
+        }
+        catch
+        {
+            // 亮度探测失败时不影响热键；首次实际调节成功后会回填缓存。
+        }
     }
 
-    private ControlActionResult ExecuteMuteToggle()
+    private async Task ExecuteBrightnessMappingAsync(KeyMappingConfig mapping)
     {
-        var result = _volumeService.ToggleMute();
+        try
+        {
+            AppServices.Log.Info($"执行动作：{mapping.Key} -> {mapping.Action}");
+
+            var deltaPercent = mapping.Action == HotKeyAction.BrightnessUp
+                ? _configurationService.Current.BrightnessStepPercent
+                : -_configurationService.Current.BrightnessStepPercent;
+            var requestVersion = Interlocked.Increment(ref _brightnessRequestVersion);
+            var previewPublished = TryPublishBrightnessPreview(mapping, deltaPercent);
+
+            await _brightnessGate.WaitAsync();
+            ControlActionResult result;
+            try
+            {
+                result = await Task.Run(() => ExecuteBrightness(deltaPercent));
+            }
+            finally
+            {
+                _brightnessGate.Release();
+            }
+
+            var isLatestRequest = requestVersion == System.Threading.Volatile.Read(ref _brightnessRequestVersion);
+            if (result.Succeeded && result.LevelPercent is { } levelPercent && isLatestRequest)
+            {
+                lock (_brightnessStateGate)
+                {
+                    _lastBrightnessPercent = levelPercent;
+                }
+            }
+
+            AppServices.Log.Info($"动作结果：{mapping.Key} -> {(result.Succeeded ? "成功" : "失败")}，{result.Message}");
+            if (isLatestRequest || !previewPublished)
+            {
+                ActionExecuted?.Invoke(this, new ActionExecutedEventArgs(mapping.Clone(), result));
+            }
+        }
+        catch (Exception ex)
+        {
+            Debug.WriteLine($"FControl action failed: {ex}");
+            AppServices.Log.Error($"动作异常：{mapping.Key} -> {mapping.Action}，{ex.Message}");
+            ActionExecuted?.Invoke(this, new ActionExecutedEventArgs(mapping.Clone(), ControlActionResult.Failure(ex.Message)));
+        }
+    }
+
+    private bool TryPublishBrightnessPreview(KeyMappingConfig mapping, int deltaPercent)
+    {
+        int nextBrightness;
+        lock (_brightnessStateGate)
+        {
+            if (_lastBrightnessPercent is null)
+            {
+                return false;
+            }
+
+            nextBrightness = Math.Clamp(_lastBrightnessPercent.Value + deltaPercent, 0, 100);
+            _lastBrightnessPercent = nextBrightness;
+        }
+
+        ActionExecuted?.Invoke(
+            this,
+            new ActionExecutedEventArgs(
+                mapping.Clone(),
+                ControlActionResult.Success($"亮度 {nextBrightness}%（正在应用）", nextBrightness)));
+        return true;
+    }
+
+    private ControlActionResult ExecuteSystemVolumeKey(HotKeyAction action)
+    {
+        var result = action switch
+        {
+            HotKeyAction.VolumeDown => _volumeService.SendVolumeDownKey(),
+            HotKeyAction.VolumeUp => _volumeService.SendVolumeUpKey(),
+            HotKeyAction.MuteToggle => _volumeService.SendMuteKey(),
+            _ => VolumeControlResult.Failure($"不是音量动作：{action}")
+        };
+
         return result.Succeeded
             ? ControlActionResult.Success(
-                result.IsMuted ? "已静音" : $"已取消静音，音量 {result.VolumePercent}%",
+                result.IsMuted ? $"系统音量键已发送：静音，音量 {result.VolumePercent}%" : $"系统音量键已发送：音量 {result.VolumePercent}%",
                 result.VolumePercent,
                 result.IsMuted)
-            : ControlActionResult.Failure($"静音切换失败：{result.Message}");
+            : ControlActionResult.Failure($"系统音量键发送失败：{result.Message}");
     }
 
     private ControlActionResult ExecuteBrightness(int deltaPercent)
@@ -97,26 +191,38 @@ public sealed class HotKeyActionService
     {
         var result = await _mediaService.ExecuteAsync(mapping.Action, mapping.SeekSeconds);
         return result.Succeeded
-            ? ControlActionResult.Success(GetMediaSuccessMessage(mapping))
+            ? ControlActionResult.Success(GetMediaSuccessMessage(mapping, result), playbackToggleState: result.PlaybackToggleState)
             : ControlActionResult.Failure($"媒体控制失败：{result.Message}");
     }
 
-    private static string GetMediaSuccessMessage(KeyMappingConfig mapping)
+    private static string GetMediaSuccessMessage(KeyMappingConfig mapping, MediaControlResult result)
     {
         return mapping.Action switch
         {
             HotKeyAction.MediaRewind => $"回退 {mapping.SeekSeconds} 秒",
             HotKeyAction.MediaFastForward => $"快进 {mapping.SeekSeconds} 秒",
+            HotKeyAction.MediaPlayPause when result.PlaybackToggleState == MediaPlaybackToggleState.Playing => "已播放",
+            HotKeyAction.MediaPlayPause when result.PlaybackToggleState == MediaPlaybackToggleState.Paused => "已暂停",
+            HotKeyAction.MediaPlayPause when result.PlaybackToggleState == MediaPlaybackToggleState.Toggled => "已切换播放/暂停",
             _ => HotKeyActionMetadata.GetDisplayName(mapping.Action)
         };
     }
 }
 
-public sealed record ControlActionResult(bool Succeeded, string Message, int? LevelPercent = null, bool? IsMuted = null)
+public sealed record ControlActionResult(
+    bool Succeeded,
+    string Message,
+    int? LevelPercent = null,
+    bool? IsMuted = null,
+    MediaPlaybackToggleState PlaybackToggleState = MediaPlaybackToggleState.Unknown)
 {
-    public static ControlActionResult Success(string message, int? levelPercent = null, bool? isMuted = null)
+    public static ControlActionResult Success(
+        string message,
+        int? levelPercent = null,
+        bool? isMuted = null,
+        MediaPlaybackToggleState playbackToggleState = MediaPlaybackToggleState.Unknown)
     {
-        return new ControlActionResult(true, message, levelPercent, isMuted);
+        return new ControlActionResult(true, message, levelPercent, isMuted, playbackToggleState);
     }
 
     public static ControlActionResult Failure(string message)

@@ -39,6 +39,10 @@
                         x:Name="KeepTrayIconSwitch"
                         Header="保留状态栏图标（推荐保留）"
                         Toggled="AdvancedSwitch_Toggled" />
+                    <ToggleSwitch
+                        x:Name="DebugLogSwitch"
+                        Header="开启调试日志（默认关闭）"
+                        Toggled="AdvancedSwitch_Toggled" />
                 </StackPanel>
             </Border>
 
@@ -55,13 +59,17 @@
             </StackPanel>
 
             <Border
-                MinHeight="320"
+                Height="360"
                 Padding="12"
                 Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
                 BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
                 BorderThickness="1"
                 CornerRadius="8">
-                <ListView x:Name="LogListView" ItemsSource="{x:Bind LogLines}">
+                <ListView
+                    x:Name="LogListView"
+                    ItemsSource="{x:Bind LogLines}"
+                    ScrollViewer.HorizontalScrollBarVisibility="Auto"
+                    ScrollViewer.VerticalScrollBarVisibility="Auto">
                     <ListView.ItemTemplate>
                         <DataTemplate>
                             <TextBlock

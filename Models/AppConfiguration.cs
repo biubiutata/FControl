@@ -2,7 +2,7 @@ namespace FControl.Models;
 
 public sealed class AppConfiguration
 {
-    public int Version { get; set; } = 1;
+    public int Version { get; set; } = AppConfigurationDefaults.CurrentVersion;
     public List<KeyMappingConfig> KeyMappings { get; set; } = AppConfigurationDefaults.CreateDefaultKeyMappings();
     public double OverlayDurationSeconds { get; set; } = 3;
     public int OverlayOpacityPercent { get; set; } = 80;
@@ -12,6 +12,7 @@ public sealed class AppConfiguration
     public bool StartupEnabled { get; set; }
     public bool ColdStartEnabled { get; set; }
     public bool KeepTrayIconEnabled { get; set; } = true;
+    public bool DebugLogEnabled { get; set; }
 }
 
 public sealed class KeyMappingConfig
@@ -33,6 +34,8 @@ public sealed class KeyMappingConfig
 
 public static class AppConfigurationDefaults
 {
+    public const int CurrentVersion = 2;
+
     public static IReadOnlyList<string> FunctionKeys { get; } =
         Enumerable.Range(1, 12).Select(static number => $"F{number}").ToArray();
 
@@ -40,7 +43,7 @@ public static class AppConfigurationDefaults
     {
         return new AppConfiguration
         {
-            Version = 1,
+            Version = CurrentVersion,
             KeyMappings = CreateDefaultKeyMappings(),
             OverlayDurationSeconds = 3,
             OverlayOpacityPercent = 80,
@@ -49,7 +52,8 @@ public static class AppConfigurationDefaults
             CompatibilityModeEnabled = false,
             StartupEnabled = false,
             ColdStartEnabled = false,
-            KeepTrayIconEnabled = true
+            KeepTrayIconEnabled = true,
+            DebugLogEnabled = false
         };
     }
 
@@ -63,9 +67,9 @@ public static class AppConfigurationDefaults
             CreateMapping("F4", HotKeyAction.Disabled),
             CreateMapping("F5", HotKeyAction.Disabled),
             CreateMapping("F6", HotKeyAction.Disabled),
-            CreateMapping("F7", HotKeyAction.MediaRewind, 2),
+            CreateMapping("F7", HotKeyAction.MediaPrevious),
             CreateMapping("F8", HotKeyAction.MediaPlayPause),
-            CreateMapping("F9", HotKeyAction.MediaFastForward, 2),
+            CreateMapping("F9", HotKeyAction.MediaNext),
             CreateMapping("F10", HotKeyAction.MuteToggle),
             CreateMapping("F11", HotKeyAction.VolumeDown),
             CreateMapping("F12", HotKeyAction.VolumeUp)

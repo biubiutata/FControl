@@ -34,6 +34,7 @@ public sealed partial class AdvancedSettingsPage : Page
         StartupSwitch.IsOn = _configurationService.Current.StartupEnabled;
         ColdStartSwitch.IsOn = _configurationService.Current.ColdStartEnabled;
         KeepTrayIconSwitch.IsOn = _configurationService.Current.KeepTrayIconEnabled;
+        DebugLogSwitch.IsOn = _configurationService.Current.DebugLogEnabled;
         _isLoading = false;
     }
 
@@ -84,7 +85,8 @@ public sealed partial class AdvancedSettingsPage : Page
             CompatibilityModeSwitch.IsOn,
             StartupSwitch.IsOn,
             ColdStartSwitch.IsOn,
-            KeepTrayIconSwitch.IsOn);
+            KeepTrayIconSwitch.IsOn,
+            DebugLogSwitch.IsOn);
 
         StartupRegistrationService.SetStartupEnabled(StartupSwitch.IsOn);
     }

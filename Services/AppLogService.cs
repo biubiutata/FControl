@@ -8,6 +8,7 @@ public sealed class AppLogService
     private readonly List<string> _lines = [];
 
     public event EventHandler<string>? LineAdded;
+    public bool IsEnabled { get; set; }
 
     public void Info(string message)
     {
@@ -48,6 +49,11 @@ public sealed class AppLogService
 
     private void Add(string level, string message)
     {
+        if (!IsEnabled)
+        {
+            return;
+        }
+
         var line = $"{DateTime.Now:yyyy-MM-dd HH:mm:ss.fff} [{level}] {message}";
         lock (_gate)
         {
