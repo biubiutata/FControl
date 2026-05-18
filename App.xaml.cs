@@ -23,6 +23,8 @@ public partial class App : Application
     /// </summary>
     public App()
     {
+        // Required for single-file publish: tells the Windows App SDK where runtime content is extracted
+        Environment.SetEnvironmentVariable("MICROSOFT_WINDOWSAPPRUNTIME_BASE_DIRECTORY", AppContext.BaseDirectory);
         InitializeComponent();
     }
 
