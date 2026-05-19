@@ -1,5 +1,6 @@
 
 .claude/
+.tools/
 ## .NET / Visual Studio
 [Bb]in/
 [Oo]bj/

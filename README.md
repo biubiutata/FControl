@@ -52,7 +52,7 @@
 
 ### 安装
 
-从 [Releases](https://github.com/biubiutata/fcontrol/releases) 页面下载最新可运行程序，双击安装即可。
+从 [Releases](https://github.com/biubiutata/fcontrol/releases) 页面下载匹配系统架构的 `FControl-*-Setup.exe`，双击后按安装向导安装。安装过程中可点击“浏览”选择安装磁盘和目录。
 
 ### 构建
 
@@ -69,6 +69,10 @@ dotnet run --project FControl.csproj
 
 # 发布 Release（ReadyToRun；WinUI/XAML 发布包不要启用裁剪）
 dotnet publish -c Release -r win-x64
+
+# 构建 x64 / x86 / ARM64 普通 EXE 安装程序（需要 Inno Setup 6）
+winget install --id JRSoftware.InnoSetup -e
+powershell -ExecutionPolicy Bypass -File scripts/build-installer.ps1
 ```
 
 ## 默认按键映射

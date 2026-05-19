@@ -52,7 +52,7 @@ Many keyboards — especially compact or mechanical ones — lack dedicated medi
 
 ### Install
 
-Download the latest executable from the [Releases](https://github.com/biubiutata/fcontrol/releases) page and double-click to install.
+Download the `FControl-*-Setup.exe` matching your system architecture from the [Releases](https://github.com/biubiutata/fcontrol/releases) page and follow the setup wizard. The installer lets you choose the target drive and installation directory.
 
 ### Build
 
@@ -69,6 +69,10 @@ dotnet run --project FControl.csproj
 
 # Publish for release (ReadyToRun; do not enable trimming for WinUI/XAML)
 dotnet publish -c Release -r win-x64
+
+# Build x64 / x86 / ARM64 regular EXE installers (requires Inno Setup 6)
+winget install --id JRSoftware.InnoSetup -e
+powershell -ExecutionPolicy Bypass -File scripts/build-installer.ps1
 ```
 
 ## Default Key Mappings
