@@ -147,6 +147,9 @@ Enable Compatibility Mode in Advanced Settings — the app will fall back to a k
 **Custom script failed to run?**
 Use the "Test Run" button in the Custom Hotkeys page to verify the script path and interpreter path. Check the Runtime Environment Detection section for Python / Node.js / Bash status.
 
+## SHARE
+[LINUX DO](https://linux.do)
+
 ## License
 
 [MIT](LICENSE)
