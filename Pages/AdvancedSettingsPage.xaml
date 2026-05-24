@@ -51,6 +51,10 @@
                         x:Name="DebugLogSwitch"
                         Header="开启调试日志（默认关闭）"
                         Toggled="AdvancedSwitch_Toggled" />
+                    <ToggleSwitch
+                        x:Name="AutoUpdateSwitch"
+                        Header="自动检查更新（启动时检查）"
+                        Toggled="AdvancedSwitch_Toggled" />
                 </StackPanel>
             </Border>
 

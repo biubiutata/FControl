@@ -63,10 +63,38 @@
                         <FontIcon Glyph="&#xE713;" />
                     </NavigationViewItem.Icon>
                 </NavigationViewItem>
-                <NavigationViewItem Content="关于" Tag="about">
+                <NavigationViewItem
+                    x:Name="AboutNavItem"
+                    Tag="about">
                     <NavigationViewItem.Icon>
                         <FontIcon Glyph="&#xE946;" />
                     </NavigationViewItem.Icon>
+                    <NavigationViewItem.Content>
+                        <Grid>
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                            </Grid.ColumnDefinitions>
+                            <TextBlock Grid.Column="0" Text="关于" />
+                            <Border
+                                x:Name="UpdateBadge"
+                                Grid.Column="1"
+                                Margin="8,0,0,0"
+                                Width="22"
+                                Height="22"
+                                Background="Red"
+                                CornerRadius="11"
+                                Visibility="Collapsed">
+                                <TextBlock
+                                    FontSize="10"
+                                    FontWeight="SemiBold"
+                                    Foreground="White"
+                                    HorizontalAlignment="Center"
+                                    VerticalAlignment="Center"
+                                    Text="new" />
+                            </Border>
+                        </Grid>
+                    </NavigationViewItem.Content>
                 </NavigationViewItem>
             </NavigationView.MenuItems>
             <Frame x:Name="NavFrame" />

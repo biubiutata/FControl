@@ -39,6 +39,40 @@
                 BorderThickness="1"
                 CornerRadius="8">
                 <StackPanel Spacing="10">
+                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="更新" />
+                    <TextBlock
+                        x:Name="UpdateStatusText"
+                        Foreground="{ThemeResource TextFillColorSecondaryBrush}"
+                        Text="可从 GitHub Release 检查最新版本。"
+                        TextWrapping="Wrap" />
+                    <ProgressBar
+                        x:Name="UpdateProgressBar"
+                        Height="4"
+                        IsIndeterminate="False"
+                        Maximum="100"
+                        Minimum="0"
+                        Visibility="Collapsed" />
+                    <StackPanel Orientation="Horizontal" Spacing="12">
+                        <Button
+                            x:Name="CheckUpdateButton"
+                            Click="CheckUpdateButton_Click"
+                            Content="检查更新" />
+                        <Button
+                            x:Name="UpdateActionButton"
+                            Click="UpdateActionButton_Click"
+                            Content="立即更新"
+                            IsEnabled="False" />
+                    </StackPanel>
+                </StackPanel>
+            </Border>
+
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="10">
                     <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="主要功能" />
                     <TextBlock Text="• F1–F12 全局按键映射：亮度、音量、静音、媒体播放/切歌。" TextWrapping="Wrap" />
                     <TextBlock Text="• 自定义组合快捷键：执行 Windows Shell、PowerShell、Bash、Python、Node.js 或外部程序。" TextWrapping="Wrap" />

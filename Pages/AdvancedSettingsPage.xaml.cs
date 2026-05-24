@@ -27,7 +27,7 @@ public sealed partial class AdvancedSettingsPage : Page
         LoadSettings();
         Loaded += AdvancedSettingsPage_Loaded;
         Unloaded += AdvancedSettingsPage_Unloaded;
-        _ = DetectRuntimesAsync(updatePathBoxes: false);
+        _ = DetectRuntimesAsync(updatePathBoxes: true);
     }
 
     private void LoadSettings()
@@ -39,6 +39,7 @@ public sealed partial class AdvancedSettingsPage : Page
         KeepTrayIconSwitch.IsOn = _configurationService.Current.KeepTrayIconEnabled;
         BackgroundPerformanceModeSwitch.IsOn = _configurationService.Current.BackgroundPerformanceModeEnabled;
         DebugLogSwitch.IsOn = _configurationService.Current.DebugLogEnabled;
+        AutoUpdateSwitch.IsOn = _configurationService.Current.AutoUpdateEnabled;
         PythonPathBox.Text = _configurationService.Current.RuntimePaths.PythonPath;
         NodePathBox.Text = _configurationService.Current.RuntimePaths.NodePath;
         UpdateStartupOptionState();
@@ -105,7 +106,8 @@ public sealed partial class AdvancedSettingsPage : Page
             ColdStartSwitch.IsOn,
             KeepTrayIconSwitch.IsOn,
             BackgroundPerformanceModeSwitch.IsOn,
-            DebugLogSwitch.IsOn);
+            DebugLogSwitch.IsOn,
+            AutoUpdateSwitch.IsOn);
 
         StartupRegistrationService.SetStartupEnabled(StartupSwitch.IsOn, ColdStartSwitch.IsOn);
     }
@@ -122,7 +124,7 @@ public sealed partial class AdvancedSettingsPage : Page
 
     private async void DetectRuntimesButton_Click(object sender, RoutedEventArgs e)
     {
-        await DetectRuntimesAsync(updatePathBoxes: true);
+        await DetectRuntimesAsync(updatePathBoxes: true, forceAutoDetection: true);
     }
 
     private async void TestPythonButton_Click(object sender, RoutedEventArgs e)
@@ -165,30 +167,34 @@ public sealed partial class AdvancedSettingsPage : Page
         NodeStatusText.Text = "已清空，将使用自动检测。";
     }
 
-    private async Task DetectRuntimesAsync(bool updatePathBoxes)
+    private async Task DetectRuntimesAsync(bool updatePathBoxes, bool forceAutoDetection = false)
     {
         RuntimeInfoBar.IsOpen = true;
         RuntimeInfoBar.Severity = InfoBarSeverity.Informational;
         RuntimeInfoBar.Message = "正在检测 Python 和 Node.js...";
-        var pythonTask = updatePathBoxes ? _runtimeService.DetectPythonAutoAsync() : _runtimeService.DetectPythonAsync();
-        var nodeTask = updatePathBoxes ? _runtimeService.DetectNodeAutoAsync() : _runtimeService.DetectNodeAsync();
+        var pythonTask = forceAutoDetection ? _runtimeService.DetectPythonAutoAsync() : _runtimeService.DetectPythonAsync();
+        var nodeTask = forceAutoDetection ? _runtimeService.DetectNodeAutoAsync() : _runtimeService.DetectNodeAsync();
         var results = await Task.WhenAll(pythonTask, nodeTask);
         ApplyRuntimeResult(PythonStatusText, results[0]);
         ApplyRuntimeResult(NodeStatusText, results[1]);
 
         if (updatePathBoxes)
         {
+            var pathChanged = false;
             if (results[0].IsAvailable)
             {
-                SetRuntimePathBox(PythonPathBox, results[0].Path);
+                pathChanged |= SetRuntimePathBox(PythonPathBox, results[0].Path);
             }
 
             if (results[1].IsAvailable)
             {
-                SetRuntimePathBox(NodePathBox, results[1].Path);
+                pathChanged |= SetRuntimePathBox(NodePathBox, results[1].Path);
             }
 
-            SaveRuntimePaths();
+            if (pathChanged)
+            {
+                SaveRuntimePaths();
+            }
         }
 
         RuntimeInfoBar.Severity = results.All(static result => result.IsAvailable) ? InfoBarSeverity.Success : InfoBarSeverity.Warning;
@@ -209,11 +215,17 @@ public sealed partial class AdvancedSettingsPage : Page
         RuntimeInfoBar.Message = result.IsAvailable ? $"{result.Name} 可用：{result.Version}" : result.Message;
     }
 
-    private void SetRuntimePathBox(TextBox box, string path)
+    private bool SetRuntimePathBox(TextBox box, string path)
     {
+        if (string.Equals(box.Text, path, StringComparison.Ordinal))
+        {
+            return false;
+        }
+
         _isLoading = true;
         box.Text = path;
         _isLoading = false;
+        return true;
     }
 
     private void SaveRuntimePaths()

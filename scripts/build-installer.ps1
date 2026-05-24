@@ -16,6 +16,15 @@ if (-not $Version) {
     $Version = $manifest.Package.Identity.Version -replace "\.0$", ""
 }
 
+$assemblyVersionParts = @($Version.Split("."))
+if ($assemblyVersionParts.Count -gt 4) {
+    throw "Version '$Version' has too many parts for AssemblyVersion."
+}
+while ($assemblyVersionParts.Count -lt 4) {
+    $assemblyVersionParts += "0"
+}
+$assemblyVersion = $assemblyVersionParts -join "."
+
 foreach ($path in @($publishRoot, $installerDir)) {
     $fullPath = [System.IO.Path]::GetFullPath($path)
     if (-not $fullPath.StartsWith($repo.Path, [System.StringComparison]::OrdinalIgnoreCase)) {
@@ -73,6 +82,9 @@ foreach ($rid in $RuntimeIdentifier) {
         -r $rid `
         -p:Platform=$($target.Platform) `
         -p:WindowsPackageType=None `
+        -p:Version=$Version `
+        -p:AssemblyVersion=$assemblyVersion `
+        -p:FileVersion=$assemblyVersion `
         -o $publishDir
 
     if ($LASTEXITCODE -ne 0) {

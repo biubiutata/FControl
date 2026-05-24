@@ -90,7 +90,8 @@ public sealed class AppConfigurationService
         bool coldStartEnabled,
         bool keepTrayIconEnabled,
         bool backgroundPerformanceModeEnabled,
-        bool debugLogEnabled)
+        bool debugLogEnabled,
+        bool autoUpdateEnabled)
     {
         Current.CompatibilityModeEnabled = compatibilityModeEnabled;
         Current.StartupEnabled = startupEnabled;
@@ -98,6 +99,7 @@ public sealed class AppConfigurationService
         Current.KeepTrayIconEnabled = keepTrayIconEnabled;
         Current.BackgroundPerformanceModeEnabled = backgroundPerformanceModeEnabled;
         Current.DebugLogEnabled = debugLogEnabled;
+        Current.AutoUpdateEnabled = autoUpdateEnabled;
         Current = Normalize(Current);
         Save();
     }
@@ -167,6 +169,7 @@ public sealed class AppConfigurationService
             ? normalized.BackgroundPerformanceModeEnabled
             : config.BackgroundPerformanceModeEnabled;
         normalized.DebugLogEnabled = config.DebugLogEnabled;
+        normalized.AutoUpdateEnabled = config.AutoUpdateEnabled;
         normalized.ScriptSafetyWarningAccepted = config.ScriptSafetyWarningAccepted;
         normalized.RuntimePaths = (config.RuntimePaths ?? new RuntimePathConfig()).Clone();
         normalized.CustomHotkeys = config.CustomHotkeys

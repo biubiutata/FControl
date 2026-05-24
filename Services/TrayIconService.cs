@@ -28,14 +28,17 @@ internal sealed class TrayIconService : IDisposable
     private const uint MfSeparator = 0x00000800;
     private const uint TpmReturNcmd = 0x0100;
     private const uint TpmRightButton = 0x0002;
-    private const uint AdvancedSettingsCommand = 1001;
-    private const uint ExitCommand = 1002;
+    private const uint KeyMappingCommand = 1001;
+    private const uint CustomHotkeysCommand = 1002;
+    private const uint DisplaySettingsCommand = 1003;
+    private const uint AdvancedSettingsCommand = 1004;
+    private const uint AboutCommand = 1005;
+    private const uint ExitCommand = 1099;
     private const nuint SubclassId = 1;
 
     private readonly nint _hwnd;
     private readonly DispatcherQueue _dispatcherQueue;
-    private readonly Action _openWindow;
-    private readonly Action _openAdvancedSettings;
+    private readonly Action<string> _navigateToPage;
     private readonly Action _exit;
     private readonly SubclassProc _subclassProc;
     private nint _iconHandle;
@@ -44,14 +47,12 @@ internal sealed class TrayIconService : IDisposable
     public TrayIconService(
         nint hwnd,
         DispatcherQueue dispatcherQueue,
-        Action openWindow,
-        Action openAdvancedSettings,
+        Action<string> navigateToPage,
         Action exit)
     {
         _hwnd = hwnd;
         _dispatcherQueue = dispatcherQueue;
-        _openWindow = openWindow;
-        _openAdvancedSettings = openAdvancedSettings;
+        _navigateToPage = navigateToPage;
         _exit = exit;
         _subclassProc = WindowSubclassProc;
 
@@ -124,7 +125,7 @@ internal sealed class TrayIconService : IDisposable
             var mouseMessage = GetLowWord(lParam);
             if (mouseMessage is WmLButtonUp or WmLButtonDblClk or NinSelect or NinKeySelect)
             {
-                _dispatcherQueue.TryEnqueue(() => _openWindow());
+                _dispatcherQueue.TryEnqueue(() => _navigateToPage("keyMapping"));
                 return 0;
             }
 
@@ -148,7 +149,11 @@ internal sealed class TrayIconService : IDisposable
 
         try
         {
+            _ = AppendMenu(menu, MfString, KeyMappingCommand, "按键映射");
+            _ = AppendMenu(menu, MfString, CustomHotkeysCommand, "快捷键功能");
+            _ = AppendMenu(menu, MfString, DisplaySettingsCommand, "显示设置");
             _ = AppendMenu(menu, MfString, AdvancedSettingsCommand, "高级设置");
+            _ = AppendMenu(menu, MfString, AboutCommand, "关于");
             _ = AppendMenu(menu, MfSeparator, 0, null);
             _ = AppendMenu(menu, MfString, ExitCommand, "退出");
 
@@ -162,8 +167,20 @@ internal sealed class TrayIconService : IDisposable
             _ = PostMessage(_hwnd, WmNull, 0, 0);
             switch (command)
             {
+                case KeyMappingCommand:
+                    _dispatcherQueue.TryEnqueue(() => _navigateToPage("keyMapping"));
+                    break;
+                case CustomHotkeysCommand:
+                    _dispatcherQueue.TryEnqueue(() => _navigateToPage("customHotkeys"));
+                    break;
+                case DisplaySettingsCommand:
+                    _dispatcherQueue.TryEnqueue(() => _navigateToPage("displaySettings"));
+                    break;
                 case AdvancedSettingsCommand:
-                    _dispatcherQueue.TryEnqueue(() => _openAdvancedSettings());
+                    _dispatcherQueue.TryEnqueue(() => _navigateToPage("advancedSettings"));
+                    break;
+                case AboutCommand:
+                    _dispatcherQueue.TryEnqueue(() => _navigateToPage("about"));
                     break;
                 case ExitCommand:
                     _dispatcherQueue.TryEnqueue(() => _exit());

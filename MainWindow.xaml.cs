@@ -49,10 +49,16 @@ public sealed partial class MainWindow : Window
         AppServices.Actions = _actions;
         AppServices.Configuration.ConfigurationChanged += Configuration_ConfigurationChanged;
         RootGrid.ActualThemeChanged += RootGrid_ActualThemeChanged;
+        UpdateService.UpdateAvailableChanged += OnUpdateAvailableChanged;
 
         if (!startHidden)
         {
             NavigateTo(typeof(KeyMappingPage));
+        }
+
+        if (AppServices.Configuration.Current.AutoUpdateEnabled)
+        {
+            _ = UpdateService.CheckAsync();
         }
     }
 
@@ -129,6 +135,8 @@ public sealed partial class MainWindow : Window
                 break;
             case "about":
                 NavigateTo(typeof(AboutPage));
+                UpdateBadge.Visibility = Visibility.Collapsed;
+                UpdateService.ClearAvailable();
                 break;
             case "advancedSettings":
                 NavigateTo(typeof(AdvancedSettingsPage));
@@ -213,6 +221,7 @@ public sealed partial class MainWindow : Window
         {
             AppServices.Configuration.ConfigurationChanged -= Configuration_ConfigurationChanged;
             RootGrid.ActualThemeChanged -= RootGrid_ActualThemeChanged;
+            UpdateService.UpdateAvailableChanged -= OnUpdateAvailableChanged;
             _hotKeys.HotKeyTriggered -= HotKeys_HotKeyTriggered;
             _hotKeys.CustomHotkeyTriggered -= HotKeys_CustomHotkeyTriggered;
             _actions.ActionExecuted -= Actions_ActionExecuted;
@@ -255,13 +264,16 @@ public sealed partial class MainWindow : Window
         Activate();
     }
 
-    private void ShowAdvancedSettingsWindow()
+    private void NavigateToPageFromTray(string tag)
     {
-        ShowSettingsWindow();
+        _isHiddenToTray = false;
+        BackgroundPerformanceService.LeaveBackgroundMode();
+        ShowWindow(_hwnd, SwShow);
+        ShowWindow(_hwnd, SwRestore);
         NavView.SelectedItem = NavView.MenuItems
             .OfType<NavigationViewItem>()
-            .FirstOrDefault(static item => (string?)item.Tag == "advancedSettings");
-        NavigateTo(typeof(AdvancedSettingsPage));
+            .FirstOrDefault(item => (string?)item.Tag == tag);
+        Activate();
     }
 
     private void ExitFromTray()
@@ -278,7 +290,7 @@ public sealed partial class MainWindow : Window
     {
         if (AppServices.Configuration.Current.KeepTrayIconEnabled)
         {
-            _trayIcon ??= new TrayIconService(_hwnd, DispatcherQueue, ShowSettingsWindow, ShowAdvancedSettingsWindow, ExitFromTray);
+            _trayIcon ??= new TrayIconService(_hwnd, DispatcherQueue, NavigateToPageFromTray, ExitFromTray);
             return;
         }
 
@@ -317,6 +329,14 @@ public sealed partial class MainWindow : Window
     private ActionOverlayWindow GetOverlayWindow()
     {
         return _overlayWindow ??= new ActionOverlayWindow();
+    }
+
+    private void OnUpdateAvailableChanged()
+    {
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            UpdateBadge.Visibility = Visibility.Visible;
+        });
     }
 
     [DllImport("user32.dll")]

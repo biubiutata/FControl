@@ -18,6 +18,7 @@ public sealed class AppConfiguration
     public bool KeepTrayIconEnabled { get; set; } = true;
     public bool BackgroundPerformanceModeEnabled { get; set; } = true;
     public bool DebugLogEnabled { get; set; }
+    public bool AutoUpdateEnabled { get; set; } = true;
 }
 
 public sealed class KeyMappingConfig
@@ -296,7 +297,8 @@ public static class AppConfigurationDefaults
             ColdStartEnabled = false,
             KeepTrayIconEnabled = true,
             BackgroundPerformanceModeEnabled = true,
-            DebugLogEnabled = false
+            DebugLogEnabled = false,
+            AutoUpdateEnabled = true
         };
     }
 
