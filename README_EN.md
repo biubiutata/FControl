@@ -29,6 +29,7 @@ Many keyboards — especially compact or mechanical ones — lack dedicated medi
 ![F3](./image/F3.png)
 ![F4](./image/F4.png)
 ![F5](./image/F5.png)
+![F6](./image/F6.png)
 
 ## Features
 
@@ -41,6 +42,7 @@ Many keyboards — especially compact or mechanical ones — lack dedicated medi
 - **Runtime detection** — Auto-detects Python, Node.js paths and versions, with manual override
 - **Conflict detection** — Validates hotkeys for duplicates, system-reserved combos, and other app conflicts on save
 - **Dark mode** — Full light/dark theme support with system accent color
+- **Desktop key mapping overlay** — Displays F1–F12 mapping status as a floating desktop widget with key-press highlight feedback. Supports horizontal/vertical layout, custom colors & transparency, and window locking (click-through)
 
 ## Quick Start
 
@@ -99,6 +101,7 @@ FControl/
 ├── App.xaml(.cs)                # App entry & lifecycle
 ├── MainWindow.xaml(.cs)         # Main window (NavigationView)
 ├── ActionOverlayWindow.xaml(.cs)   # Overlay feedback window
+├── DesktopKeyMappingWindow.xaml(.cs)  # Desktop mapping overlay
 ├── CustomHotkeyEditorWindow.xaml(.cs)  # Hotkey editor window
 ├── Models/
 │   ├── AppConfiguration.cs      # Config model, defaults, metadata
@@ -115,6 +118,7 @@ FControl/
 │   ├── TrayIconService.cs           # System tray
 │   ├── StartupRegistrationService.cs # Auto-start registration
 │   ├── AppLogService.cs             # File logging
+│   ├── HexColorHelper.cs            # Color parsing utilities
 │   └── HotkeyParser.cs              # Hotkey string parser
 └── Pages/
     ├── KeyMappingPage.xaml(.cs)      # Key mapping page

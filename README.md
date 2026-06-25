@@ -29,6 +29,7 @@
 ![F3](./image/F3.png)
 ![F4](./image/F4.png)
 ![F5](./image/F5.png)
+![F6](./image/F6.png)
 
 ## 特性
 
@@ -41,6 +42,7 @@
 - **运行环境检测** — 自动检测 Python、Node.js 等运行环境路径与版本，支持手动配置
 - **冲突检测** — 保存快捷键时自动检测内部重复、系统保留键、其他程序占用
 - **暗色模式** — 完整适配 Windows 浅色/深色主题与系统强调色
+- **桌面映射显示** — 在桌面显示 F1–F12 映射状态浮窗，按键时高亮反馈，支持横向/竖向布局、自定义颜色与透明度、窗口锁定（鼠标穿透）
 
 ## 快速开始
 
@@ -99,6 +101,7 @@ FControl/
 ├── App.xaml(.cs)             # 应用入口与生命周期
 ├── MainWindow.xaml(.cs)      # 主窗口 (NavigationView)
 ├── ActionOverlayWindow.xaml(.cs)  # 浮层提示窗口
+├── DesktopKeyMappingWindow.xaml(.cs)  # 桌面映射浮窗
 ├── CustomHotkeyEditorWindow.xaml(.cs)  # 快捷键编辑窗口
 ├── Models/
 │   ├── AppConfiguration.cs   # 配置数据模型、默认值、元数据
@@ -115,6 +118,7 @@ FControl/
 │   ├── TrayIconService.cs          # 系统托盘
 │   ├── StartupRegistrationService.cs # 开机自启
 │   ├── AppLogService.cs            # 文件日志
+│   ├── HexColorHelper.cs            # 颜色解析工具
 │   └── HotkeyParser.cs             # 快捷键解析
 └── Pages/
     ├── KeyMappingPage.xaml(.cs)     # 按键映射页
