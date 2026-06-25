@@ -1,7 +1,7 @@
 #define MyAppName "FControl"
 #define MyAppPublisher "biubiutata"
 #ifndef MyAppVersion
-#define MyAppVersion "1.0.2"
+#define MyAppVersion "1.0.4"
 #endif
 #ifndef SourceDir
 #define SourceDir "..\artifacts\installer-publish\win-x64"
