@@ -55,6 +55,59 @@
                         x:Name="AutoUpdateSwitch"
                         Header="自动检查更新（启动时检查）"
                         Toggled="AdvancedSwitch_Toggled" />
+                    <ToggleSwitch
+                        x:Name="DesktopKeyMappingSwitch"
+                        Header="桌面显示映射按键"
+                        OffContent="不显示桌面映射"
+                        OnContent="在桌面显示 F1–F12 映射"
+                        Toggled="DesktopKeyMappingSwitch_Toggled" />
+                </StackPanel>
+            </Border>
+
+            <Border
+                Padding="16"
+                Background="{ThemeResource CardBackgroundFillColorDefaultBrush}"
+                BorderBrush="{ThemeResource CardStrokeColorDefaultBrush}"
+                BorderThickness="1"
+                CornerRadius="8">
+                <StackPanel Spacing="14">
+                    <TextBlock Style="{StaticResource SubtitleTextBlockStyle}" Text="桌面映射显示" />
+                    <ToggleSwitch
+                        x:Name="DesktopMappingLockSwitch"
+                        Header="锁定窗口（锁定后鼠标穿透，不影响桌面文件/窗口）"
+                        Toggled="DesktopMappingDisplay_Toggled" />
+                    <ToggleSwitch
+                        x:Name="DesktopMappingLayoutSwitch"
+                        Header="竖向显示"
+                        Toggled="DesktopMappingDisplay_Toggled" />
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="背景透明度" />
+                        <Slider
+                            x:Name="DesktopMappingBackgroundOpacitySlider"
+                            Maximum="100"
+                            Minimum="0"
+                            StepFrequency="5"
+                            ValueChanged="DesktopMappingOpacitySlider_ValueChanged" />
+                    </StackPanel>
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="文字透明度" />
+                        <Slider
+                            x:Name="DesktopMappingTextOpacitySlider"
+                            Maximum="100"
+                            Minimum="0"
+                            StepFrequency="5"
+                            ValueChanged="DesktopMappingOpacitySlider_ValueChanged" />
+                    </StackPanel>
+                    <StackPanel Spacing="6">
+                        <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="图标透明度" />
+                        <Slider
+                            x:Name="DesktopMappingIconOpacitySlider"
+                            Maximum="100"
+                            Minimum="0"
+                            StepFrequency="5"
+                            ValueChanged="DesktopMappingOpacitySlider_ValueChanged" />
+                    </StackPanel>
+                    <Grid x:Name="DesktopMappingColorPanel" ColumnSpacing="16" />
                 </StackPanel>
             </Border>
 

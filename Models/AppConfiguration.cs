@@ -19,6 +19,8 @@ public sealed class AppConfiguration
     public bool BackgroundPerformanceModeEnabled { get; set; } = true;
     public bool DebugLogEnabled { get; set; }
     public bool AutoUpdateEnabled { get; set; } = true;
+    public bool DesktopKeyMappingEnabled { get; set; }
+    public DesktopKeyMappingDisplayConfig DesktopKeyMapping { get; set; } = new();
 }
 
 public sealed class KeyMappingConfig
@@ -122,6 +124,43 @@ public sealed class RuntimePathConfig
             NodePath = NodePath,
             BashPath = BashPath,
             PowerShellPath = PowerShellPath
+        };
+    }
+}
+
+public sealed class DesktopKeyMappingDisplayConfig
+{
+    public bool IsVertical { get; set; }
+    public int X { get; set; } = 40;
+    public int Y { get; set; } = 40;
+    public int Width { get; set; } = 1060;
+    public int Height { get; set; } = 130;
+    public int OpacityPercent { get; set; } = 80;
+    public int TextOpacityPercent { get; set; } = 100;
+    public int IconOpacityPercent { get; set; } = 100;
+    public string BackgroundColor { get; set; } = "#202020";
+    public string TextColor { get; set; } = "#FFFFFF";
+    public string IconColor { get; set; } = "#FFFFFF";
+    public string HighlightColor { get; set; } = "#0078D4";
+    public bool IsLocked { get; set; } = true;
+
+    public DesktopKeyMappingDisplayConfig Clone()
+    {
+        return new DesktopKeyMappingDisplayConfig
+        {
+            IsVertical = IsVertical,
+            X = X,
+            Y = Y,
+            Width = Width,
+            Height = Height,
+            OpacityPercent = OpacityPercent,
+            TextOpacityPercent = TextOpacityPercent,
+            IconOpacityPercent = IconOpacityPercent,
+            BackgroundColor = BackgroundColor,
+            TextColor = TextColor,
+            IconColor = IconColor,
+            HighlightColor = HighlightColor,
+            IsLocked = IsLocked
         };
     }
 }
@@ -273,7 +312,7 @@ public static class ConcurrencyPolicyMetadata
 
 public static class AppConfigurationDefaults
 {
-    public const int CurrentVersion = 4;
+    public const int CurrentVersion = 5;
 
     public static IReadOnlyList<string> FunctionKeys { get; } =
         Enumerable.Range(1, 12).Select(static number => $"F{number}").ToArray();
@@ -298,7 +337,9 @@ public static class AppConfigurationDefaults
             KeepTrayIconEnabled = true,
             BackgroundPerformanceModeEnabled = true,
             DebugLogEnabled = false,
-            AutoUpdateEnabled = true
+            AutoUpdateEnabled = true,
+            DesktopKeyMappingEnabled = false,
+            DesktopKeyMapping = new DesktopKeyMappingDisplayConfig()
         };
     }
 

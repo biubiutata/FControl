@@ -21,6 +21,7 @@ public sealed partial class MainWindow : Window
     private readonly GlobalHotKeyService _hotKeys;
     private readonly HotKeyActionService _actions;
     private ActionOverlayWindow? _overlayWindow;
+    private DesktopKeyMappingWindow? _desktopKeyMappingWindow;
     private bool _isExitRequested;
     private bool _isHiddenToTray;
     private Type _lastPageType = typeof(KeyMappingPage);
@@ -50,6 +51,7 @@ public sealed partial class MainWindow : Window
         AppServices.Configuration.ConfigurationChanged += Configuration_ConfigurationChanged;
         RootGrid.ActualThemeChanged += RootGrid_ActualThemeChanged;
         UpdateService.UpdateAvailableChanged += OnUpdateAvailableChanged;
+        UpdateDesktopKeyMappingWindow();
 
         if (!startHidden)
         {
@@ -76,6 +78,7 @@ public sealed partial class MainWindow : Window
             _hotKeys.Refresh();
             ApplyTrayIconPreference();
             ApplyBackgroundPerformanceMode();
+            UpdateDesktopKeyMappingWindow();
         });
     }
 
@@ -90,7 +93,11 @@ public sealed partial class MainWindow : Window
     }
     private void Actions_ActionExecuted(object? sender, ActionExecutedEventArgs e)
     {
-        DispatcherQueue.TryEnqueue(() => ShowActionStatus(e));
+        DispatcherQueue.TryEnqueue(() =>
+        {
+            ShowActionStatus(e);
+            _desktopKeyMappingWindow?.HighlightKey(e.Mapping.Key);
+        });
     }
 
     private void Actions_ScriptActionExecuted(object? sender, ScriptActionExecutedEventArgs e)
@@ -231,6 +238,7 @@ public sealed partial class MainWindow : Window
             BackgroundPerformanceService.LeaveBackgroundMode();
             _hotKeys.Dispose();
             _overlayWindow?.Dispose();
+            _desktopKeyMappingWindow?.Dispose();
             _trayIcon?.Dispose();
             _trayIcon = null;
             return;
@@ -329,6 +337,18 @@ public sealed partial class MainWindow : Window
     private ActionOverlayWindow GetOverlayWindow()
     {
         return _overlayWindow ??= new ActionOverlayWindow();
+    }
+
+    private void UpdateDesktopKeyMappingWindow()
+    {
+        if (AppServices.Configuration.Current.DesktopKeyMappingEnabled)
+        {
+            _desktopKeyMappingWindow ??= new DesktopKeyMappingWindow();
+            _desktopKeyMappingWindow.ShowOrUpdate();
+            return;
+        }
+
+        _desktopKeyMappingWindow?.HideWindow();
     }
 
     private void OnUpdateAvailableChanged()

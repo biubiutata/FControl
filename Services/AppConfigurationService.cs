@@ -84,6 +84,20 @@ public sealed class AppConfigurationService
         Save();
     }
 
+    public void SetDesktopKeyMappingEnabled(bool enabled)
+    {
+        Current.DesktopKeyMappingEnabled = enabled;
+        Current = Normalize(Current);
+        Save();
+    }
+
+    public void SetDesktopKeyMappingDisplayConfig(DesktopKeyMappingDisplayConfig displayConfig)
+    {
+        Current.DesktopKeyMapping = displayConfig.Clone();
+        Current = Normalize(Current);
+        Save();
+    }
+
     public void SetAdvancedSettings(
         bool compatibilityModeEnabled,
         bool startupEnabled,
@@ -170,6 +184,8 @@ public sealed class AppConfigurationService
             : config.BackgroundPerformanceModeEnabled;
         normalized.DebugLogEnabled = config.DebugLogEnabled;
         normalized.AutoUpdateEnabled = config.AutoUpdateEnabled;
+        normalized.DesktopKeyMappingEnabled = config.DesktopKeyMappingEnabled;
+        normalized.DesktopKeyMapping = NormalizeDesktopKeyMapping(config.DesktopKeyMapping);
         normalized.ScriptSafetyWarningAccepted = config.ScriptSafetyWarningAccepted;
         normalized.RuntimePaths = (config.RuntimePaths ?? new RuntimePathConfig()).Clone();
         normalized.CustomHotkeys = config.CustomHotkeys
@@ -212,6 +228,30 @@ public sealed class AppConfigurationService
             MigrateDefaultMediaKeys(normalized);
         }
 
+        return normalized;
+    }
+
+    private static DesktopKeyMappingDisplayConfig NormalizeDesktopKeyMapping(DesktopKeyMappingDisplayConfig? config)
+    {
+        var normalized = new DesktopKeyMappingDisplayConfig();
+        if (config is null)
+        {
+            return normalized;
+        }
+
+        normalized.IsVertical = config.IsVertical;
+        normalized.X = Math.Clamp(config.X, -10000, 10000);
+        normalized.Y = Math.Clamp(config.Y, -10000, 10000);
+        normalized.Width = Math.Clamp(config.Width, 320, 1600);
+        normalized.Height = Math.Clamp(config.Height, 90, 900);
+        normalized.OpacityPercent = Math.Clamp(config.OpacityPercent, 0, 100);
+        normalized.TextOpacityPercent = Math.Clamp(config.TextOpacityPercent, 0, 100);
+        normalized.IconOpacityPercent = Math.Clamp(config.IconOpacityPercent, 0, 100);
+        normalized.BackgroundColor = HexColorHelper.NormalizeRgb(config.BackgroundColor, normalized.BackgroundColor);
+        normalized.TextColor = HexColorHelper.NormalizeRgb(config.TextColor, normalized.TextColor);
+        normalized.IconColor = HexColorHelper.NormalizeRgb(config.IconColor, normalized.IconColor);
+        normalized.HighlightColor = HexColorHelper.NormalizeRgb(config.HighlightColor, normalized.HighlightColor);
+        normalized.IsLocked = config.IsLocked;
         return normalized;
     }
 
