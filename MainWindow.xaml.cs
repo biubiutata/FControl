@@ -48,6 +48,7 @@ public sealed partial class MainWindow : Window
         _actions.ScriptActionExecuted += Actions_ScriptActionExecuted;
         AppServices.HotKeys = _hotKeys;
         AppServices.Actions = _actions;
+        AppServices.RequestExit = ExitFromTray;
         AppServices.Configuration.ConfigurationChanged += Configuration_ConfigurationChanged;
         RootGrid.ActualThemeChanged += RootGrid_ActualThemeChanged;
         UpdateService.UpdateAvailableChanged += OnUpdateAvailableChanged;
@@ -235,6 +236,7 @@ public sealed partial class MainWindow : Window
             _actions.ScriptActionExecuted -= Actions_ScriptActionExecuted;
             AppServices.HotKeys = null;
             AppServices.Actions = null;
+            AppServices.RequestExit = null;
             BackgroundPerformanceService.LeaveBackgroundMode();
             _hotKeys.Dispose();
             _overlayWindow?.Dispose();

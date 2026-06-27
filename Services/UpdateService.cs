@@ -70,36 +70,54 @@ public static class UpdateService
         InstallerDownloadUrl = null;
     }
 
-    public static async Task<string> DownloadInstallerAsync(IProgress<double>? progress = null)
+    public static async Task<string> DownloadInstallerAsync(IProgress<double>? progress = null, CancellationToken cancellationToken = default)
     {
         var url = InstallerDownloadUrl ?? throw new InvalidOperationException("没有可用的安装器下载地址。");
         var tempDir = Path.GetTempPath();
         var fileName = $"FControl-Update-{Guid.NewGuid():N}.exe";
         var filePath = Path.Combine(tempDir, fileName);
 
-        using var response = await HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead);
-        response.EnsureSuccessStatusCode();
-
-        var totalBytes = response.Content.Headers.ContentLength ?? -1;
-        await using var contentStream = await response.Content.ReadAsStreamAsync();
-        await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None);
-
-        var buffer = new byte[8192];
-        var downloadedBytes = 0L;
-        int bytesRead;
-
-        while ((bytesRead = await contentStream.ReadAsync(buffer)) > 0)
+        try
         {
-            await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead));
-            downloadedBytes += bytesRead;
+            using var response = await HttpClient.GetAsync(url, HttpCompletionOption.ResponseHeadersRead, cancellationToken);
+            response.EnsureSuccessStatusCode();
 
-            if (totalBytes > 0)
+            var totalBytes = response.Content.Headers.ContentLength ?? -1;
+            await using var contentStream = await response.Content.ReadAsStreamAsync(cancellationToken);
+            await using var fileStream = new FileStream(filePath, FileMode.Create, FileAccess.Write, FileShare.None, 8192, FileOptions.Asynchronous);
+
+            var buffer = new byte[8192];
+            var downloadedBytes = 0L;
+            int bytesRead;
+
+            while ((bytesRead = await contentStream.ReadAsync(buffer.AsMemory(0, buffer.Length), cancellationToken)) > 0)
             {
-                progress?.Report((double)downloadedBytes / totalBytes * 100);
-            }
-        }
+                await fileStream.WriteAsync(buffer.AsMemory(0, bytesRead), cancellationToken);
+                downloadedBytes += bytesRead;
 
-        return filePath;
+                if (totalBytes > 0)
+                {
+                    progress?.Report((double)downloadedBytes / totalBytes * 100);
+                }
+            }
+
+            return filePath;
+        }
+        catch
+        {
+            try
+            {
+                if (File.Exists(filePath))
+                {
+                    File.Delete(filePath);
+                }
+            }
+            catch
+            {
+            }
+
+            throw;
+        }
     }
 
     public static void LaunchInstaller(string filePath)
@@ -107,6 +125,21 @@ public static class UpdateService
         Process.Start(new ProcessStartInfo(filePath)
         {
             UseShellExecute = true
+        });
+    }
+
+    public static void LaunchInstallerAfterCurrentProcessExits(string filePath)
+    {
+        var currentProcessId = Environment.ProcessId;
+        var escapedFilePath = EscapePowerShellSingleQuotedString(filePath);
+        var command = $"Wait-Process -Id {currentProcessId}; Start-Process -FilePath '{escapedFilePath}'";
+
+        Process.Start(new ProcessStartInfo("powershell.exe")
+        {
+            Arguments = $"-NoProfile -ExecutionPolicy Bypass -WindowStyle Hidden -Command \"{command}\"",
+            UseShellExecute = false,
+            CreateNoWindow = true,
+            WindowStyle = ProcessWindowStyle.Hidden
         });
     }
 
@@ -191,6 +224,11 @@ public static class UpdateService
         return element.TryGetProperty(propertyName, out var property) && property.ValueKind == JsonValueKind.String
             ? property.GetString() ?? string.Empty
             : string.Empty;
+    }
+
+    private static string EscapePowerShellSingleQuotedString(string value)
+    {
+        return value.Replace("'", "''");
     }
 
     internal static Version? TryParseVersion(string value)
