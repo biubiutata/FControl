@@ -17,6 +17,7 @@ public sealed partial class AboutPage : Page
         InitializeComponent();
         _currentVersionText = UpdateService.GetCurrentVersionText();
         VersionText.Text = $"版本：{_currentVersionText}";
+        RepositoryLinkButton.Content = UpdateService.RepositoryPageUrl;
 
         if (UpdateService.IsAvailable)
         {
@@ -60,17 +61,16 @@ public sealed partial class AboutPage : Page
         {
             var progress = new Progress<double>(percent =>
             {
-                DispatcherQueue.TryEnqueue(() =>
-                {
-                    UpdateProgressBar.Value = percent;
-                    UpdateStatusText.Text = $"正在下载更新... {percent:F0}%";
-                });
+                UpdateProgressBar.Value = percent;
+                UpdateStatusText.Text = $"正在下载更新... {percent:F0}%";
             });
 
             var installerPath = await UpdateService.DownloadInstallerAsync(progress, linkedCts.Token);
 
-            UpdateProgressBar.Visibility = Visibility.Collapsed;
+            UpdateProgressBar.Value = 100;
             UpdateStatusText.Text = "下载完成，正在退出程序并启动安装程序...";
+            await Task.Delay(150);
+            UpdateProgressBar.Visibility = Visibility.Collapsed;
             UpdateService.LaunchInstallerAfterCurrentProcessExits(installerPath);
             AppServices.RequestExit?.Invoke();
         }
@@ -99,5 +99,13 @@ public sealed partial class AboutPage : Page
             _isDownloading = false;
             UpdateActionButton.Content = "立即更新";
         }
+    }
+
+    private void RepositoryLinkButton_Click(object sender, RoutedEventArgs e)
+    {
+        Process.Start(new ProcessStartInfo(UpdateService.RepositoryPageUrl)
+        {
+            UseShellExecute = true
+        });
     }
 }

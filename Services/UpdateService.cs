@@ -9,8 +9,9 @@ namespace FControl.Services;
 
 public static class UpdateService
 {
+    private const string RepositoryUrl = "https://github.com/biubiutata/FControl";
     private const string LatestReleaseApiUrl = "https://api.github.com/repos/biubiutata/FControl/releases/latest";
-    private const string ReleasesUrl = "https://github.com/biubiutata/FControl/releases";
+    private const string ReleasesUrl = RepositoryUrl + "/releases";
     private static readonly HttpClient HttpClient = new();
     private static readonly Regex VersionRegex = new(@"\d+(?:\.\d+){0,3}", RegexOptions.Compiled);
 
@@ -62,6 +63,7 @@ public static class UpdateService
     }
 
     public static string ReleasesPageUrl => ReleasesUrl;
+    public static string RepositoryPageUrl => RepositoryUrl;
 
     public static void ClearAvailable()
     {
