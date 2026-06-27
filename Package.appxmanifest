@@ -10,7 +10,7 @@
   <Identity
     Name="FControl"
     Publisher="CN=biubiutata"
-    Version="1.0.7.0" />
+    Version="1.0.7.1" />
 
   <mp:PhoneIdentity PhoneProductId="AB5B7B2B-9FC2-49EF-BD7B-D595E92E51EC" PhonePublisherId="00000000-0000-0000-0000-000000000000"/>
 
