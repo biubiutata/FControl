@@ -2,24 +2,23 @@ using FControl.Models;
 using FControl.Pages;
 using FControl.Services;
 using Microsoft.UI.Input;
-using Microsoft.UI.Windowing;
 using Microsoft.UI.Xaml;
 using Microsoft.UI.Xaml.Controls;
 using Microsoft.UI.Xaml.Input;
-using Windows.Graphics;
 using Windows.System;
 using Windows.UI.Core;
 
 namespace FControl;
 
-public sealed partial class CustomHotkeyEditorWindow : Window
+public sealed partial class CustomHotkeyEditorWindow : ContentDialog
 {
     private readonly CustomHotkeyItem _item;
     private readonly Func<CustomHotkeyConfig, IReadOnlyList<HotkeyConflict>> _validateConflicts;
-    private readonly TaskCompletionSource<bool> _completion = new();
     private bool _isRecording;
+    private bool _saved;
 
     public CustomHotkeyEditorWindow(
+        XamlRoot xamlRoot,
         CustomHotkeyItem item,
         string title,
         Func<CustomHotkeyConfig, IReadOnlyList<HotkeyConflict>> validateConflicts)
@@ -28,22 +27,15 @@ public sealed partial class CustomHotkeyEditorWindow : Window
         _item = item;
         _validateConflicts = validateConflicts;
         Title = title;
-        TitleText.Text = title;
-        AppWindow.Resize(new SizeInt32(860, 760));
-        if (AppWindow.Presenter is OverlappedPresenter presenter)
-        {
-            presenter.IsModal = false;
-            presenter.IsResizable = true;
-        }
-
-        Closed += (_, _) => _completion.TrySetResult(false);
+        XamlRoot = xamlRoot;
         LoadItem();
     }
 
-    public Task<bool> ShowEditorAsync()
+    public async Task<bool> ShowEditorAsync()
     {
-        Activate();
-        return _completion.Task;
+        _saved = false;
+        await ShowAsync();
+        return _saved;
     }
 
     private void LoadItem()
@@ -130,11 +122,12 @@ public sealed partial class CustomHotkeyEditorWindow : Window
         UpdateModeVisibility();
     }
 
-    private void SaveButton_Click(object sender, RoutedEventArgs e)
+    private void SaveButton_Click(ContentDialog sender, ContentDialogButtonClickEventArgs args)
     {
         if (!HotkeyParser.TryParse(HotkeyBox.Text, out var definition, out var error))
         {
             ShowError(error);
+            args.Cancel = true;
             return;
         }
 
@@ -143,12 +136,26 @@ public sealed partial class CustomHotkeyEditorWindow : Window
         if (conflicts.Count > 0)
         {
             ShowError(string.Join(Environment.NewLine, conflicts.Select(static conflict => $"{conflict.Hotkey}：{conflict.Message}")));
+            args.Cancel = true;
             return;
         }
 
         _item.CopyFrom(CustomHotkeyItem.FromConfig(candidate));
-        _completion.TrySetResult(true);
-        Close();
+        _saved = true;
+    }
+
+    private void UpdateModeVisibility()
+    {
+        var mode = ScriptModeMetadata.FromDisplayName((string?)ModeBox.SelectedItem);
+        PathBox.Visibility = mode == ScriptMode.File ? Visibility.Visible : Visibility.Collapsed;
+        InlineBox.Visibility = mode == ScriptMode.Inline ? Visibility.Visible : Visibility.Collapsed;
+    }
+
+    private void ShowError(string message)
+    {
+        EditorInfoBar.Message = message;
+        EditorInfoBar.Severity = InfoBarSeverity.Error;
+        EditorInfoBar.IsOpen = true;
     }
 
     private CustomHotkeyConfig BuildConfig(string hotkey)
@@ -170,26 +177,6 @@ public sealed partial class CustomHotkeyEditorWindow : Window
             ConcurrencyPolicy = ConcurrencyPolicyMetadata.FromDisplayName((string?)ConcurrencyBox.SelectedItem),
             ShowOverlay = OverlaySwitch.IsOn
         };
-    }
-
-    private void CancelButton_Click(object sender, RoutedEventArgs e)
-    {
-        _completion.TrySetResult(false);
-        Close();
-    }
-
-    private void UpdateModeVisibility()
-    {
-        var mode = ScriptModeMetadata.FromDisplayName((string?)ModeBox.SelectedItem);
-        PathBox.Visibility = mode == ScriptMode.File ? Visibility.Visible : Visibility.Collapsed;
-        InlineBox.Visibility = mode == ScriptMode.Inline ? Visibility.Visible : Visibility.Collapsed;
-    }
-
-    private void ShowError(string message)
-    {
-        EditorInfoBar.Message = message;
-        EditorInfoBar.Severity = InfoBarSeverity.Error;
-        EditorInfoBar.IsOpen = true;
     }
 
     private static uint GetCurrentModifiers()

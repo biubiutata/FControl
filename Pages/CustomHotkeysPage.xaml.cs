@@ -210,7 +210,7 @@ public sealed partial class CustomHotkeysPage : Page
 
     private async Task<bool> ShowEditorAsync(CustomHotkeyItem item, string title)
     {
-        var editor = new CustomHotkeyEditorWindow(item, title, candidate => ValidateCandidate(item.Id, candidate));
+        var editor = new CustomHotkeyEditorWindow(XamlRoot, item, title, candidate => ValidateCandidate(item.Id, candidate));
         return await editor.ShowEditorAsync();
     }
 

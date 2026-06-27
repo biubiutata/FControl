@@ -43,6 +43,7 @@ Many keyboards — especially compact or mechanical ones — lack dedicated medi
 - **Conflict detection** — Validates hotkeys for duplicates, system-reserved combos, and other app conflicts on save
 - **Dark mode** — Full light/dark theme support with system accent color
 - **Desktop key mapping overlay** — Displays F1–F12 mapping status as a floating desktop widget with key-press highlight feedback. Supports horizontal/vertical layout, custom colors & transparency, and window locking (click-through)
+- **ContentDialog editor** — Hotkey editor refactored from a separate window into a ContentDialog, aligning with WinUI design conventions for a lighter, smoother editing experience
 
 ## Quick Start
 

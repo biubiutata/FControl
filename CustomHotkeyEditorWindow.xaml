@@ -1,65 +1,52 @@
 <?xml version="1.0" encoding="utf-8" ?>
-<Window
+<ContentDialog
     x:Class="FControl.CustomHotkeyEditorWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    CloseButtonText="取消"
+    DefaultButton="Primary"
+    PrimaryButtonClick="SaveButton_Click"
+    PrimaryButtonText="保存"
     Title="快捷键编辑">
-    <Window.SystemBackdrop>
-        <MicaBackdrop />
-    </Window.SystemBackdrop>
+    <ScrollViewer MaxHeight="720" MinWidth="760">
+        <StackPanel Spacing="12">
+            <InfoBar x:Name="EditorInfoBar" IsOpen="False" />
+            <TextBox x:Name="NameBox" Header="名称" PlaceholderText="例如：运行备份脚本" />
+            <ToggleSwitch x:Name="EnabledSwitch" Header="启用" />
 
-    <Grid Padding="20" RowSpacing="16">
-        <Grid.RowDefinitions>
-            <RowDefinition Height="*" />
-            <RowDefinition Height="Auto" />
-        </Grid.RowDefinitions>
-
-        <ScrollViewer>
-            <StackPanel Spacing="12" MaxWidth="760">
-                <TextBlock x:Name="TitleText" Style="{StaticResource TitleTextBlockStyle}" Text="编辑快捷键" />
-                <InfoBar x:Name="EditorInfoBar" IsOpen="False" />
-                <TextBox x:Name="NameBox" Header="名称" PlaceholderText="例如：运行备份脚本" />
-                <ToggleSwitch x:Name="EnabledSwitch" Header="启用" />
-
-                <StackPanel Spacing="6">
-                    <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="快捷键" />
-                    <TextBox
-                        x:Name="HotkeyBox"
-                        GotFocus="HotkeyBox_GotFocus"
-                        IsReadOnly="True"
-                        PlaceholderText="点击输入框后按下组合键"
-                        PreviewKeyDown="HotkeyBox_PreviewKeyDown"
-                        Tapped="HotkeyBox_Tapped" />
-                    <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="点击输入框后，直接在键盘按下例如 Ctrl+Shift+K。保存时会检测整个系统是否冲突。" />
-                </StackPanel>
-
-                <ComboBox x:Name="TypeBox" Header="脚本类型" />
-                <ComboBox x:Name="ModeBox" Header="执行模式" SelectionChanged="ModeBox_SelectionChanged" />
-                <TextBox x:Name="PathBox" Header="脚本文件路径 / 外部程序" PlaceholderText="脚本文件模式使用" />
+            <StackPanel Spacing="6">
+                <TextBlock Style="{StaticResource BodyStrongTextBlockStyle}" Text="快捷键" />
                 <TextBox
-                    x:Name="InlineBox"
-                    Header="内联代码 / 命令"
-                    AcceptsReturn="True"
-                    MinHeight="140"
-                    PlaceholderText="内联模式使用"
-                    TextWrapping="Wrap" />
-                <TextBox x:Name="ArgumentsBox" Header="参数" />
-                <TextBox x:Name="WorkingDirectoryBox" Header="工作目录" />
-                <ComboBox x:Name="WindowBox" Header="运行窗口" />
-                <NumberBox
-                    x:Name="TimeoutBox"
-                    Header="超时时间（秒）"
-                    Maximum="3600"
-                    Minimum="1"
-                    SpinButtonPlacementMode="Inline" />
-                <ComboBox x:Name="ConcurrencyBox" Header="并发策略" />
-                <ToggleSwitch x:Name="OverlaySwitch" Header="执行完成显示浮层" />
+                    x:Name="HotkeyBox"
+                    GotFocus="HotkeyBox_GotFocus"
+                    IsReadOnly="True"
+                    PlaceholderText="点击输入框后按下组合键"
+                    PreviewKeyDown="HotkeyBox_PreviewKeyDown"
+                    Tapped="HotkeyBox_Tapped" />
+                <TextBlock Foreground="{ThemeResource TextFillColorSecondaryBrush}" Text="点击输入框后，直接在键盘按下例如 Ctrl+Shift+K。保存时会检测整个系统是否冲突。" />
             </StackPanel>
-        </ScrollViewer>
 
-        <StackPanel Grid.Row="1" HorizontalAlignment="Right" Orientation="Horizontal" Spacing="12">
-            <Button Click="CancelButton_Click" Content="取消" />
-            <Button Click="SaveButton_Click" Content="保存" Style="{StaticResource AccentButtonStyle}" />
+            <ComboBox x:Name="TypeBox" Header="脚本类型" />
+            <ComboBox x:Name="ModeBox" Header="执行模式" SelectionChanged="ModeBox_SelectionChanged" />
+            <TextBox x:Name="PathBox" Header="脚本文件路径 / 外部程序" PlaceholderText="脚本文件模式使用" />
+            <TextBox
+                x:Name="InlineBox"
+                Header="内联代码 / 命令"
+                AcceptsReturn="True"
+                MinHeight="140"
+                PlaceholderText="内联模式使用"
+                TextWrapping="Wrap" />
+            <TextBox x:Name="ArgumentsBox" Header="参数" />
+            <TextBox x:Name="WorkingDirectoryBox" Header="工作目录" />
+            <ComboBox x:Name="WindowBox" Header="运行窗口" />
+            <NumberBox
+                x:Name="TimeoutBox"
+                Header="超时时间（秒）"
+                Maximum="3600"
+                Minimum="1"
+                SpinButtonPlacementMode="Inline" />
+            <ComboBox x:Name="ConcurrencyBox" Header="并发策略" />
+            <ToggleSwitch x:Name="OverlaySwitch" Header="执行完成显示浮层" />
         </StackPanel>
-    </Grid>
-</Window>
+    </ScrollViewer>
+</ContentDialog>

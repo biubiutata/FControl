@@ -276,6 +276,7 @@ public sealed partial class MainWindow : Window
     {
         _isHiddenToTray = false;
         BackgroundPerformanceService.LeaveBackgroundMode();
+        EnsureNavigationContent();
         ShowWindow(_hwnd, SwShow);
         ShowWindow(_hwnd, SwRestore);
         NavView.SelectedItem = NavView.MenuItems
